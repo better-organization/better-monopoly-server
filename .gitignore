@@ -1,3 +1,27 @@
+# Rust build artifacts
 /target
+Cargo.lock
 
+# IDE/Editor files
 .idea
+.vscode
+*.iml
+
+# macOS
+.DS_Store
+
+# Vim swap files
+*.swp
+*.swo
+
+# Debug/Testing artifacts
+*.profraw
+.tarpaulin-report.html
+perf.data*
+
+# Windows
+Thumbs.db
+
+# Local environment files
+.env.local
+
