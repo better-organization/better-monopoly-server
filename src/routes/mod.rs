@@ -1,6 +1,6 @@
+use crate::routes::health::health_check;
 use axum::Router;
 use axum::routing::get;
-use crate::routes::health::health_check;
 
 mod health;
 

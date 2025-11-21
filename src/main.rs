@@ -1,10 +1,10 @@
 mod routes;
 
-use std::env;
+use crate::routes::routes;
 use axum::Router;
+use std::env;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use crate::routes::routes;
 
 #[tokio::main]
 async fn main() {
@@ -18,9 +18,9 @@ async fn main() {
     let addr = format!("{}:{}", host, port);
 
     println!("Server running on http://{}", addr);
-    let listener = TcpListener::bind(&addr).await.expect("Failed to bind address");
-
-    axum::serve(listener, app)
+    let listener = TcpListener::bind(&addr)
         .await
-        .expect("Server failed");
+        .expect("Failed to bind address");
+
+    axum::serve(listener, app).await.expect("Server failed");
 }
