@@ -41,3 +41,7 @@ jobs:
 
       - name: Run tests
         run: cargo test --all --verbose
+      
+      - name: Build Docker image (no push yet)
+        run: |
+          docker build -f build/Dockerfile -t monopoly-backend-dev:latest .
