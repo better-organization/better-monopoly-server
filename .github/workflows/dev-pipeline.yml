@@ -1,0 +1,21 @@
+name: Dev pipeline skeleton
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  hello:
+    name: Say hi on main push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print workflow info
+        run: |
+          echo "✅ Dev pipeline triggered!"
+          echo "Branch: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
