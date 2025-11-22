@@ -1,5 +1,5 @@
 # ---- Build stage ----
-FROM rust:latest as builder
+FROM ghcr.io/rust-lang/rust:latest as builder
 
 WORKDIR /usr/src/app
 
@@ -19,7 +19,7 @@ COPY . .
 RUN cargo build --release
 
 # ---- Runtime stage ----
-FROM debian:bookworm-slim AS runtime
+FROM ghcr.io/debian:bookworm-slim AS runtime
 
 # Install minimal certificates (if your app calls HTTPS APIs)
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -33,4 +33,4 @@ COPY --from=builder /usr/src/app/target/release/better-monopoly-server /app/bett
 # Expose the port your app listens on (adjust if different)
 EXPOSE 8080
 
-CMD ["./better-monopoly-server"]
+CMD ["sh", "-c", "echo 'Container starting on Render...'; pwd; ls -R .; echo 'Running server...'; ./better-monopoly-server"]
