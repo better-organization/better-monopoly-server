@@ -1,5 +1,8 @@
 # ---- Build stage ----
-FROM ghcr.io/rust-lang/rust:latest as builder
+FROM rust:1.75-alpine AS builder
+
+# Install required dependencies for building
+RUN apk add --no-cache musl-dev
 
 WORKDIR /usr/src/app
 
@@ -19,18 +22,18 @@ COPY . .
 RUN cargo build --release
 
 # ---- Runtime stage ----
-FROM ghcr.io/debian:bookworm-slim AS runtime
+FROM alpine:latest AS runtime
 
-# Install minimal certificates (if your app calls HTTPS APIs)
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install CA certificates for HTTPS calls
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-# ⚠️ IMPORTANT: replace `your_binary_name` with your actual binary name
-# e.g., if package is `[package] name = "monopoly-backend"`, the binary is usually that name
+# Copy the binary from builder stage
 COPY --from=builder /usr/src/app/target/release/better-monopoly-server /app/better-monopoly-server
 
-# Expose the port your app listens on (adjust if different)
+# Expose the port your app listens on
 EXPOSE 8080
 
-CMD ["sh", "-c", "echo 'Container starting on Render...'; pwd; ls -R .; echo 'Running server...'; ./better-monopoly-server"]
+# Run the binary
+CMD ["./better-monopoly-server"]
