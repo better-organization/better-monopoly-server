@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: better-monopoly-server
+    env: java
+    buildCommand: ./gradlew clean bootJar
+    startCommand: java -jar build/libs/*.jar
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"
+    healthCheckPath: /api/health
