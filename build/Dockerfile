@@ -1,8 +1,5 @@
 # ---- Build stage ----
-FROM rust:1.75-alpine AS builder
-
-# Install required dependencies for building
-RUN apk add --no-cache musl-dev
+FROM rust:latest AS builder
 
 WORKDIR /usr/src/app
 
@@ -22,10 +19,10 @@ COPY . .
 RUN cargo build --release
 
 # ---- Runtime stage ----
-FROM alpine:latest AS runtime
+FROM debian:bookworm-slim AS runtime
 
 # Install CA certificates for HTTPS calls
-RUN apk add --no-cache ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
