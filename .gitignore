@@ -1,27 +1,37 @@
-# Rust build artifacts
-/target
-Cargo.lock
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# IDE/Editor files
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
 .idea
-.vscode
+*.iws
 *.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
 
-# macOS
-.DS_Store
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
 
-# Vim swap files
-*.swp
-*.swo
-
-# Debug/Testing artifacts
-*.profraw
-.tarpaulin-report.html
-perf.data*
-
-# Windows
-Thumbs.db
-
-# Local environment files
-.env.local
-
+### VS Code ###
+.vscode/
