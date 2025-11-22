@@ -1,36 +1,35 @@
 # ---- Build stage ----
-FROM rust:latest AS builder
+FROM openjdk:21-jdk-slim AS builder
 
 WORKDIR /usr/src/app
 
-# Copy Cargo.toml and Cargo.lock first (for caching deps)
-COPY Cargo.toml Cargo.lock ./
+# Copy Gradle wrapper and build files first (for caching deps)
+COPY gradlew gradlew
+COPY gradle gradle
+COPY build.gradle settings.gradle ./
 
-# Create a dummy src/main.rs so `cargo build` can resolve dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+# Make gradlew executable
+RUN chmod +x gradlew
 
-# Build dependencies (this will be cached unless Cargo.toml/lock changes)
-RUN cargo build --release || true
+# Download dependencies (this will be cached unless build.gradle changes)
+RUN ./gradlew dependencies --no-daemon
 
-# Now copy the real source code
-COPY . .
+# Now copy the source code
+COPY src ./src
 
-# Build the real binary
-RUN cargo build --release
+# Build the application
+RUN ./gradlew clean bootJar --no-daemon
 
 # ---- Runtime stage ----
-FROM debian:bookworm-slim AS runtime
-
-# Install CA certificates for HTTPS calls
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+FROM openjdk:21-jre-slim AS runtime
 
 WORKDIR /app
 
-# Copy the binary from builder stage
-COPY --from=builder /usr/src/app/target/release/better-monopoly-server /app/better-monopoly-server
+# Copy the JAR file from builder stage
+COPY --from=builder /usr/src/app/build/libs/*.jar /app/app.jar
 
 # Expose the port your app listens on
 EXPOSE 8080
 
-# Run the binary
-CMD ["./better-monopoly-server"]
+# Run the JAR file
+CMD ["java", "-jar", "app.jar"]
