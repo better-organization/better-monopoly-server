@@ -1,35 +1,47 @@
-# ---- Build stage ----
-FROM openjdk:21-jdk-slim AS builder
-
-WORKDIR /usr/src/app
-
-# Copy Gradle wrapper and build files first (for caching deps)
-COPY gradlew gradlew
-COPY gradle gradle
-COPY build.gradle settings.gradle ./
-
-# Make gradlew executable
-RUN chmod +x gradlew
-
-# Download dependencies (this will be cached unless build.gradle changes)
-RUN ./gradlew dependencies --no-daemon
-
-# Now copy the source code
-COPY src ./src
-
-# Build the application
-RUN ./gradlew clean bootJar --no-daemon
-
-# ---- Runtime stage ----
-FROM openjdk:21-jre-slim AS runtime
+# Multi-stage build for production
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy the JAR file from builder stage
-COPY --from=builder /usr/src/app/build/libs/*.jar /app/app.jar
+# Copy package files
+COPY package*.json ./
 
-# Expose the port your app listens on
-EXPOSE 8080
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
 
-# Run the JAR file
-CMD ["java", "-jar", "app.jar"]
+# Copy source files
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start application
+CMD ["node", "dist/index.js"]

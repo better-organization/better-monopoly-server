@@ -1,5 +1,0 @@
-spring:
-  application:
-    name: Better-Monopoly-Server
-  profiles:
-    active: local
