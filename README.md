@@ -1,5 +1,7 @@
 # Better Monopoly Server
 
+[![CI/CD Pipeline](https://github.com/Akash0Dey/better-monopoly-server/actions/workflows/main.yml/badge.svg)](https://github.com/Akash0Dey/better-monopoly-server/actions/workflows/main.yml)
+
 TypeScript Express backend for the Better Monopoly game. This is a multi-repository project with a separate React/Next.js frontend.
 
 ## 🚀 Features
@@ -131,30 +133,92 @@ http://localhost:3000/api-docs
 
 ## 🔄 CI/CD Pipeline
 
-The project uses GitHub Actions for continuous integration and deployment:
+The project uses GitHub Actions for continuous integration and deployment to Render.
 
-### Workflows
+### Workflow Overview
 
-1. **CI/CD Pipeline** (`.github/workflows/ci-cd.yml`)
-   - Lint and code quality checks
-   - TypeScript type checking
-   - Unit and integration tests
-   - Build application
-   - Docker image build and push
-   - Security audits
-   - Deploy to staging (develop branch)
-   - Deploy to production (main branch)
+**File**: `.github/workflows/main.yml`
 
-2. **PR Validation** (`.github/workflows/pr-validation.yml`)
-   - Automated PR checks
-   - Test coverage reporting
-   - Build validation
+The pipeline runs on every push and pull request to `main` and `develop` branches:
 
-### Branch Strategy
+#### Quality Checks (Always Run)
+1. **Lint** - ESLint code quality validation
+2. **Format Check** - Prettier formatting verification
+3. **Type Check** - TypeScript compilation without emit
+4. **Tests** - Unit and integration tests on Node 18.x and 20.x
+5. **Build** - Production build verification
+6. **Security Audit** - npm audit for vulnerabilities
 
-- `main` - Production-ready code
-- `develop` - Development branch
-- Feature branches - Created from `develop`
+#### Deployment (Main Branch Only)
+7. **Deploy to Render** - Automatic deployment when changes are pushed to `main` branch
+   - **Disabled for PRs** - Pull requests trigger all checks but skip deployment
+   - Uses Render Deploy Hook for zero-downtime deployments
+   - Includes health check verification post-deployment
+
+### Setting Up Render Deployment
+
+#### 1. Create Render Service
+
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Click "New +" → "Web Service"
+3. Connect your GitHub repository: `Akash0Dey/better-monopoly-server`
+4. Render will auto-detect `render.yaml` and configure the service
+
+#### 2. Configure GitHub Secrets
+
+Add these secrets to your GitHub repository (`Settings` → `Secrets and variables` → `Actions`):
+
+| Secret Name | Description | How to Get |
+|-------------|-------------|------------|
+| `RENDER_DEPLOY_HOOK_URL` | Deploy hook URL | Render Dashboard → Service Settings → Deploy Hook |
+| `RENDER_SERVICE_URL` | Your service URL | e.g., `https://better-monopoly-server.onrender.com` |
+| `CODECOV_TOKEN` | (Optional) Code coverage | [codecov.io](https://codecov.io) |
+
+**Getting Deploy Hook URL**:
+- In Render Dashboard → Your Service → Settings → Deploy Hook
+- Copy the URL (looks like: `https://api.render.com/deploy/srv-xxxxx?key=yyyyy`)
+
+#### 3. Configure Environment Variables in Render
+
+Go to your Render service → Environment tab and add:
+
+| Variable | Value | Notes |
+|----------|-------|-------|
+| `NODE_ENV` | `production` | Auto-set by `render.yaml` |
+| `PORT` | `10000` | Auto-set by Render |
+| `APP_NAME` | `Better-Monopoly-Server` | Auto-set |
+| `API_PREFIX` | `/api/v1` | Auto-set |
+| `CORS_ORIGIN` | `https://your-frontend.com` | **Set manually** (comma-separated for multiple) |
+| `LOG_LEVEL` | `info` | Auto-set |
+| `SWAGGER_ENABLED` | `false` | Disabled in production |
+
+**Note**: `CORS_ORIGIN` must be manually configured with your frontend URL(s).
+
+### Deployment Process
+
+1. **Make changes** on a feature branch
+2. **Create Pull Request** to `main`
+   - CI pipeline runs all quality checks
+   - Deployment is **skipped** for PRs
+3. **Merge to main**
+   - CI pipeline runs all quality checks
+   - Build succeeds → Deployment automatically triggers
+   - Render pulls latest code, builds, and deploys
+   - Health check verifies deployment success
+
+### Monitoring Deployments
+
+- **GitHub Actions**: View workflow runs in the `Actions` tab
+- **Render Dashboard**: Real-time build logs and deployment status
+- **Health Check**: `https://your-service.onrender.com/health`
+
+### Manual Deployment
+
+Trigger deployment manually via Render dashboard or using the deploy hook:
+
+```bash
+curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+```
 
 ## 📁 Project Structure
 
