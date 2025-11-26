@@ -3,10 +3,20 @@ services:
     name: better-monopoly-server
     env: node
     buildCommand: npm ci && npm run build
+<<<<<<< Updated upstream:.render/render.yaml
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+=======
+    startCommand: node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+>>>>>>> Stashed changes:render.yaml
       - key: APP_NAME
         value: Better-Monopoly-Server
       - key: API_PREFIX
