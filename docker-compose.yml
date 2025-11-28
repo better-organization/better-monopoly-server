@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: better-monopoly-server
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - FRONTEND_URL=http://localhost:3000
+    env_file:
+      - .env
+    networks:
+      - better-monopoly
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:8080/api/health/live', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => { process.exit(1) })",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Add database service when needed
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: better-monopoly-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: monopoly_game
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - better-monopoly
+
+  # Add Redis service when needed
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: better-monopoly-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - better-monopoly
+
+networks:
+  better-monopoly:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
