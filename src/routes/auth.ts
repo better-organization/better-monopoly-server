@@ -1,8 +1,31 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
+import {
+  register,
+  login,
+  getProfile,
+  userIdExists,
+} from '../controllers/authController';
 
 const router = Router();
 
-// Test endpoint for authentication
+// Rate limiting specifically for auth endpoints (disabled in test environment)
+const authLimiter =
+  process.env['NODE_ENV'] === 'test'
+    ? (_req: Request, _res: Response, next: NextFunction) => next() // No rate limiting in tests
+    : rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5, // limit each IP to 5 requests per windowMs for auth endpoints
+        message: {
+          error: 'Too Many Requests',
+          message:
+            'Too many authentication attempts from this IP, please try again later.',
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+
+// Test endpoint for authentication service
 router.get('/test', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -11,10 +34,10 @@ router.get('/test', (_req: Request, res: Response) => {
   });
 });
 
-// TODO: Implement actual authentication endpoints
-// router.post('/login', authController.login);
-// router.post('/register', authController.register);
-// router.post('/logout', authController.logout);
-// router.get('/me', authMiddleware, authController.getProfile);
+// Authentication endpoints
+router.post('/register', authLimiter, register);
+router.post('/login', authLimiter, login);
+router.post('/userIdExists', authLimiter, userIdExists);
+router.get('/profile', getProfile); // TODO: Add auth middleware later
 
 export = router;

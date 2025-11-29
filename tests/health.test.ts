@@ -39,4 +39,16 @@ describe('Health Endpoints', () => {
       expect(response.body.timestamp).toBeDefined();
     });
   });
+
+    describe('GET /api/auth/test', () => {
+    it('should return liveness status of auth', async () => {
+      const response = await request(app).get('/api/auth/test').expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        message: 'Authentication service is working!',
+      });
+      expect(response.body.timestamp).toBeDefined();
+    });      
+  });
 });
