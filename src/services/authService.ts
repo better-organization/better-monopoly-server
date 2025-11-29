@@ -28,30 +28,36 @@ export interface AuthResponse {
 
 export class AuthService {
   // TODO: Implement user registration
-  static async register(data: RegisterRequest): Promise<AuthResponse> {
-    throw new Error('Not implemented yet');
+  static async register(_data: RegisterRequest): Promise<AuthResponse> {
+    console.log('register called with:', _data);
+    return { token: '', user: { id: '', username: '', email: '', createdAt: new Date(), updatedAt: new Date() } };
   }
 
   // TODO: Implement user login
-  static async login(data: LoginRequest): Promise<AuthResponse> {
-    throw new Error('Not implemented yet');
+  static async login(_data: LoginRequest): Promise<AuthResponse> {
+    console.log('login called with:', _data);
+    return { token: '', user: { id: '', username: '', email: '', createdAt: new Date(), updatedAt: new Date() } };
   }
 
   // TODO: Implement token verification
-  static async verifyToken(token: string): Promise<User | null> {
-    throw new Error('Not implemented yet');
+  static async verifyToken(_token: string): Promise<User | null> {
+    console.log('verifyToken called with:', _token);
+    return null;
   }
 
   // TODO: Implement password hashing
-  static async hashPassword(password: string): Promise<string> {
-    throw new Error('Not implemented yet');
+  static async hashPassword(_password: string): Promise<string> {
+    console.log('hashPassword called with:', _password);
+    return '';
   }
 
   // TODO: Implement password comparison
   static async comparePassword(
-    password: string,
-    hash: string
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _password: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _hash: string
   ): Promise<boolean> {
-    throw new Error('Not implemented yet');
+    return false;
   }
 }

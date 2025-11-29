@@ -7,11 +7,12 @@ interface CustomError extends Error {
 
 export const errorHandler = (
   err: CustomError,
-  _req: Request,
+  _req: Request, 
   res: Response,
-  _next: NextFunction
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _next?: NextFunction
 ): void => {
-  let error = { ...err };
+    const error = { ...err }; // Change let to const
   error.message = err.message;
 
   // Log error

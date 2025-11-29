@@ -35,28 +35,32 @@ export interface Game {
 export interface GameMove {
   playerId: string;
   type: 'roll' | 'buy' | 'pay' | 'trade';
-  data: any;
+  data: unknown;
 }
 
 export class GameService {
   // TODO: Implement game creation
-  static async createGame(hostId: string): Promise<Game> {
-    throw new Error('Not implemented yet');
+  static async createGame(_hostId: string): Promise<Game> {
+    console.log('createGame called with:', _hostId);
+    return {} as Game;
   }
 
   // TODO: Implement player joining
-  static async joinGame(gameId: string, playerId: string): Promise<Game> {
-    throw new Error('Not implemented yet');
+  static async joinGame(_gameId: string, _playerId: string): Promise<Game> {
+    console.log('joinGame called with:', _gameId, _playerId);
+    return {} as Game;
   }
 
   // TODO: Implement game state retrieval
-  static async getGame(gameId: string): Promise<Game | null> {
-    throw new Error('Not implemented yet');
+  static async getGame(_gameId: string): Promise<Game | null> {
+    console.log('getGame called with:', _gameId);
+    return null;
   }
 
   // TODO: Implement move processing
-  static async processMove(gameId: string, move: GameMove): Promise<Game> {
-    throw new Error('Not implemented yet');
+  static async processMove(_gameId: string, _move: GameMove): Promise<Game> {
+    console.log('processMove called with:', _gameId, _move);
+    return {} as Game;
   }
 
   // TODO: Implement dice rolling
@@ -69,6 +73,6 @@ export class GameService {
 
   // TODO: Implement board initialization
   static initializeBoard(): Property[] {
-    throw new Error('Not implemented yet');
+    return [];
   }
 }

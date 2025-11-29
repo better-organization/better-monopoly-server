@@ -1,18 +1,18 @@
 import { Response } from 'express';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
   error?: {
     message: string;
-    details?: any;
+    details?: unknown;
   };
   timestamp: string;
 }
 
 // Success response helper
-export const sendSuccess = <T>(
+export const sendSuccess = <T = unknown>(
   res: Response,
   data?: T,
   message?: string,
@@ -34,7 +34,7 @@ export const sendError = (
   res: Response,
   message: string,
   statusCode: number = 500,
-  details?: any
+  details?: unknown
 ): void => {
   const response: ApiResponse = {
     success: false,

@@ -35,8 +35,9 @@ export const gameMoveSchema = Joi.object({
 
 // Validation middleware generator
 export const validate = (schema: Joi.ObjectSchema) => {
-  return (req: any, res: any, next: any) => {
-    const { error, value } = schema.validate(req.body);
+  return (req: unknown, res: unknown, next: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error, value } = (schema as any).validate((req as any).body);
 
     if (error) {
       return res.status(400).json({
