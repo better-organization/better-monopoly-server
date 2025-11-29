@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { Request, Response, NextFunction } from 'express';
 
 // User validation schemas
 export const registerSchema = Joi.object({
@@ -35,16 +36,17 @@ export const gameMoveSchema = Joi.object({
 
 // Validation middleware generator
 export const validate = (schema: Joi.ObjectSchema) => {
-  return (req: unknown, res: unknown, next: unknown) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error, value } = (schema as any).validate((req as any).body);
+    const { error, value } = (schema as any).validate(req.body);
 
     if (error) {
       return res.status(400).json({
         success: false,
         error: {
           message: 'Validation error',
-          details: error.details.map(detail => ({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          details: error.details.map((detail: any) => ({
             field: detail.path.join('.'),
             message: detail.message,
           })),
@@ -53,6 +55,6 @@ export const validate = (schema: Joi.ObjectSchema) => {
     }
 
     req.body = value;
-    next();
+    return next();
   };
 };

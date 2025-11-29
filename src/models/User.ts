@@ -29,7 +29,9 @@ export class User {
     this.username = data.username;
     this.email = data.email;
     this.passwordHash = data.passwordHash;
-    this.avatar = data.avatar;
+    if (data.avatar !== undefined) {
+      this.avatar = data.avatar;
+    }
     this.totalGamesPlayed = data.totalGamesPlayed;
     this.gamesWon = data.gamesWon;
     this.createdAt = data.createdAt;

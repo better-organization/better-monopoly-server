@@ -5,7 +5,7 @@ export const requireAuth = (
   _req: Request,
   _res: Response,
   next: NextFunction
-): Promise<void> => {
+): void => {
   next();
 };
 
@@ -14,6 +14,6 @@ export const optionalAuth = (
   _req: Request,
   _res: Response,
   next: NextFunction
-): Promise<void> => {
+): void => {
   next();
 };

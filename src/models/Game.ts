@@ -43,7 +43,9 @@ export class Game {
     this.players = data.players;
     this.currentPlayer = data.currentPlayer;
     this.status = data.status;
-    this.winner = data.winner;
+    if (data.winner !== undefined) {
+      this.winner = data.winner;
+    }
     this.board = data.board;
     this.maxPlayers = data.maxPlayers;
     this.hostId = data.hostId;
