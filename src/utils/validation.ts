@@ -1,60 +1,71 @@
-import Joi from 'joi';
-import { Request, Response, NextFunction } from 'express';
+// Simple validation with object-based checks
+import { ERROR_MESSAGES } from './errorMessages';
 
-// User validation schemas
-export const registerSchema = Joi.object({
-  username: Joi.string().alphanum().min(3).max(30).required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-});
-
-export const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-});
-
-// Game validation schemas
-export const createGameSchema = Joi.object({
-  maxPlayers: Joi.number().min(2).max(8).default(4),
-  gameSettings: Joi.object({
-    startingMoney: Joi.number().min(1000).max(10000).default(1500),
-    passGoMoney: Joi.number().min(100).max(500).default(200),
-    jailFine: Joi.number().min(50).max(200).default(50),
-    houseCost: Joi.number().min(50).max(500).default(100),
-    hotelCost: Joi.number().min(100).max(1000).default(200),
-  }).default({}),
-});
-
-export const joinGameSchema = Joi.object({
-  gameId: Joi.string().uuid().required(),
-});
-
-export const gameMoveSchema = Joi.object({
-  type: Joi.string().valid('roll', 'buy', 'pay', 'trade').required(),
-  data: Joi.object().required(),
-});
-
-// Validation middleware generator
-export const validate = (schema: Joi.ObjectSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error, value } = (schema as any).validate(req.body);
-
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation error',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          details: error.details.map((detail: any) => ({
-            field: detail.path.join('.'),
-            message: detail.message,
-          })),
-        },
-      });
-    }
-
-    req.body = value;
-    return next();
+export const validateRegistration = (
+  username: string,
+  password: string,
+  userId: string
+): string | null => {
+  const registrationChecks = {
+    [ERROR_MESSAGES.REGISTRATION_REQUIRED_FIELDS]: () =>
+      !username || !password || !userId,
+    [ERROR_MESSAGES.REGISTRATION_FIELD_TYPES]: () =>
+      typeof username !== 'string' ||
+      typeof password !== 'string' ||
+      typeof userId !== 'string',
+    [ERROR_MESSAGES.USERNAME_MIN_LENGTH]: () => username.trim().length < 3,
+    [ERROR_MESSAGES.PASSWORD_MIN_LENGTH]: () => password.length < 6,
+    [ERROR_MESSAGES.USERID_MIN_LENGTH]: () => userId.trim().length < 3,
+    [ERROR_MESSAGES.USERNAME_PATTERN]: () =>
+      !/^[a-zA-Z0-9_]+$/.test(username.trim()),
+    [ERROR_MESSAGES.USERID_PATTERN]: () =>
+      !/^[a-zA-Z0-9_-]+$/.test(userId.trim()),
   };
+
+  for (const [errorMessage, checkFunction] of Object.entries(
+    registrationChecks
+  )) {
+    if (checkFunction()) {
+      return errorMessage;
+    }
+  }
+
+  return null;
+};
+
+export const validateLogin = (
+  userId: string,
+  password: string
+): string | null => {
+  const loginChecks = {
+    [ERROR_MESSAGES.LOGIN_REQUIRED_FIELDS]: () => !userId || !password,
+    [ERROR_MESSAGES.LOGIN_FIELD_TYPES]: () =>
+      typeof userId !== 'string' || typeof password !== 'string',
+  };
+
+  for (const [errorMessage, checkFunction] of Object.entries(loginChecks)) {
+    if (checkFunction()) {
+      return errorMessage;
+    }
+  }
+
+  return null;
+};
+
+export const validateUserIdOnly = (userId: string): string | null => {
+  const userIdChecks = {
+    [ERROR_MESSAGES.USERID_REQUIRED]: () => !userId,
+    [ERROR_MESSAGES.USERID_TYPE]: () => typeof userId !== 'string',
+    [ERROR_MESSAGES.USERID_MIN_LENGTH]: () => userId.trim().length < 3,
+    [ERROR_MESSAGES.USERID_PATTERN]: () =>
+      !/^[a-zA-Z0-9_-]+$/.test(userId.trim()),
+  };
+
+  for (const [errorMessage, checkFunction] of Object.entries(userIdChecks)) {
+    if (checkFunction()) {
+      return errorMessage;
+    }
+  }
+
+  return null;
 };

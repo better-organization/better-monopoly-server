@@ -2,6 +2,11 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import {
+  validateRegistration,
+  validateLogin,
+  validateUserIdOnly,
+} from '../utils/validation';
 import * as dotenv from 'dotenv';
 
 dotenv.config(); // Loads variables from .env into process.env
@@ -23,47 +28,13 @@ const generateToken = (userId: string, username: string): string => {
   } as jwt.SignOptions);
 };
 
-// Validation helper
+// Clean validation using simple object iteration approach
 const validateRegistrationInput = (
   username: string,
   password: string,
   userId: string
 ): string | null => {
-  if (!username || !password || !userId) {
-    return 'Username, password, and userId are required';
-  }
-
-  if (
-    typeof username !== 'string' ||
-    typeof password !== 'string' ||
-    typeof userId !== 'string'
-  ) {
-    return 'Username, password, and userId must be strings';
-  }
-
-  if (username.trim().length < 3) {
-    return 'Username must be at least 3 characters long';
-  }
-
-  if (password.length < 6) {
-    return 'Password must be at least 6 characters long';
-  }
-
-  if (userId.trim().length < 3) {
-    return 'UserId must be at least 3 characters long';
-  }
-
-  // Username format validation (alphanumeric and underscores only)
-  if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) {
-    return 'Username can only contain letters, numbers, and underscores';
-  }
-
-  // UserId format validation (alphanumeric, underscores, and hyphens only)
-  if (!/^[a-zA-Z0-9_-]+$/.test(userId.trim())) {
-    return 'UserId can only contain letters, numbers, underscores, and hyphens';
-  }
-
-  return null;
+  return validateRegistration(username, password, userId);
 };
 
 /**
@@ -76,37 +47,16 @@ export const userIdExists = async (
 ): Promise<void> => {
   try {
     const { userId } = req.body;
-    // Validate input
-    if (!userId) {
+
+    const validationError = validateUserIdOnly(userId);
+    if (validationError) {
       res.status(400).json({
         error: 'Validation failed',
-        message: 'UserId is required',
+        message: validationError,
       });
       return;
     }
-    if (typeof userId !== 'string') {
-      res.status(400).json({
-        error: 'Validation failed',
-        message: 'UserId must be a string',
-      });
-      return;
-    }
-    if (userId.trim().length < 3) {
-      res.status(400).json({
-        error: 'Validation failed',
-        message: 'UserId must be at least 3 characters long',
-      });
-      return;
-    }
-    // UserId format validation
-    if (!/^[a-zA-Z0-9_-]+$/.test(userId.trim())) {
-      res.status(400).json({
-        error: 'Validation failed',
-        message:
-          'UserId can only contain letters, numbers, underscores, and hyphens',
-      });
-      return;
-    }
+
     const trimmedUserId = userId.trim();
     // Check if userId already exists
     if (User.userIdExists(trimmedUserId)) {
@@ -116,6 +66,7 @@ export const userIdExists = async (
       });
       return;
     }
+
     // UserId is available
     res.status(200).json({
       success: true,
@@ -194,16 +145,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { userId, password }: { userId?: string; password?: string } =
       req.body;
 
-    // Validate required fields
-    if (!userId || !password) {
+    // Clean validation using the simple validator
+    const validationError = validateLogin(userId || '', password || '');
+    if (validationError) {
       res.status(400).json({
-        error: 'Both userId and password are required',
+        error: validationError,
       });
       return;
     }
 
+    // At this point we know userId and password are valid strings
+    const validUserId = userId!;
+    const validPassword = password!;
+
     // Check if user exists
-    const user = User.findByUserId(userId);
+    const user = User.findByUserId(validUserId);
     if (!user) {
       res.status(401).json({
         error: 'Invalid credentials',
@@ -212,7 +168,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(
+      validPassword,
+      user.password_hash
+    );
     if (!isPasswordValid) {
       res.status(401).json({
         error: 'Invalid credentials',
