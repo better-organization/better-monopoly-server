@@ -6,12 +6,12 @@ HOOKS_DIR=".git/hooks"
 # Pre-push hook: run lint and tests before pushing
 cat <<'EOF' > "$HOOKS_DIR/pre-push"
 #!/bin/sh
-npm run lint
+  yarn lint
 if [ $? -ne 0 ]; then
   echo "Lint failed. Push aborted."
   exit 1
 fi
-npm test
+  yarn test
 if [ $? -ne 0 ]; then
   echo "Tests failed. Push aborted."
   exit 1
