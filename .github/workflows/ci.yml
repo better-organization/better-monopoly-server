@@ -1,0 +1,62 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      PORT: 8080
+      FRONTEND_URL: http://localhost:3000
+      JWT_SECRET: github-ci-secret
+      JWT_EXPIRE: 30d
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint code
+        run: yarn lint
+
+      - name: Format check
+        run: yarn format:check
+
+      - name: Build project
+        run: yarn build
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Docker build
+        run: docker build -t better-monopoly-server .
+
+      - name: Docker run health check
+        run: |
+          docker run -d --name monopoly-test -p 8080:8080 better-monopoly-server
+          sleep 10
+          curl --fail http://localhost:8080/api/health/live
+          docker stop monopoly-test
+          docker rm monopoly-test
+
+      # Add deployment steps here (e.g., to DockerHub, AWS, Azure, etc.)
+      # - name: Deploy
+      #   run: echo "Deploy step here"

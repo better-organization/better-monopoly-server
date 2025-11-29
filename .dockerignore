@@ -1,19 +1,25 @@
-# Docker ignore file
 node_modules
 npm-debug.log
-dist
-coverage
+yarn-error.log
 .git
 .gitignore
-.env
-.env.*
 README.md
+PROGRESS.md
+.env
+.env.example
+.nyc_output
+coverage
+.coverage
+*.md
+dist
+.eslintcache
+.DS_Store
 .vscode
 .idea
 *.log
-.DS_Store
-
-# Test files
+tests
 __tests__
 *.test.ts
+*.spec.ts
 jest.config.js
+.github
