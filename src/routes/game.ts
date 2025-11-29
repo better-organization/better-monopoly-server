@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { BoardController } from '../controllers/boardController';
 
 const router = Router();
 
@@ -12,10 +13,6 @@ router.get('/test', (_req: Request, res: Response) => {
 });
 
 // TODO: Implement actual game endpoints
-// router.post('/create', gameController.createGame);
-// router.get('/:gameId', gameController.getGame);
-// router.post('/:gameId/join', gameController.joinGame);
-// router.post('/:gameId/move', gameController.makeMove);
-// router.get('/:gameId/status', gameController.getGameStatus);
+router.get('/board/:boardId/version/:version', BoardController.getBoardLayout);
 
-export = router;
+export default router;
