@@ -1,0 +1,30 @@
+{
+  "edition": "European Football Club Giants",
+  "id": "european_football_club_giants",
+  "version": "1.0",
+  "currency": "EURO",
+  "currency_symbol": "€",
+  "mortgage_percentage": "25%",
+  "sell_percentage": "50%",
+  "terms": {
+    "player": "Manager",
+    "property": "Football Club",
+    "transport": "Tournament",
+    "utility": "Income Stream",
+    "house": "Training Pitch",
+    "hotel": "Youth Academy",
+    "property_rent": "Bare Site Rent",
+    "transport_rent": "Tournament Fee",
+    "utility_rent": "Broadcasting/Merchandise Fee",
+    "mortgage": "Financial Restructuring",
+    "passing_go": "SEASON KICK-OFF",
+    "salary": "Salary",
+    "jail": "REHABILITATION CENTER",
+    "theft": "INJURY",
+    "parking": "RED CARD",
+    "income_tax": "FOUL PLAY SANCTION",
+    "luxury_tax": "AGENT’S FEE",
+    "community_chest": "CLUB FUNDS",
+    "chance": "CLUB TOURS"
+  }
+}
