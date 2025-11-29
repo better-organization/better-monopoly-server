@@ -30,13 +30,31 @@ export class AuthService {
   // TODO: Implement user registration
   static async register(_data: RegisterRequest): Promise<AuthResponse> {
     console.log('register called with:', _data);
-    return { token: '', user: { id: '', username: '', email: '', createdAt: new Date(), updatedAt: new Date() } };
+    return {
+      token: '',
+      user: {
+        id: '',
+        username: '',
+        email: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    };
   }
 
   // TODO: Implement user login
   static async login(_data: LoginRequest): Promise<AuthResponse> {
     console.log('login called with:', _data);
-    return { token: '', user: { id: '', username: '', email: '', createdAt: new Date(), updatedAt: new Date() } };
+    return {
+      token: '',
+      user: {
+        id: '',
+        username: '',
+        email: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    };
   }
 
   // TODO: Implement token verification

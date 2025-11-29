@@ -80,10 +80,10 @@ export class Game {
         passGoMoney: 200,
         jailFine: 50,
         houseCost: 100,
-        hotelCost: 200
+        hotelCost: 200,
       },
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
   }
 

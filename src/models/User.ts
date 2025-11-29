@@ -60,7 +60,7 @@ export class User {
       totalGamesPlayed: 0,
       gamesWon: 0,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
   }
 
