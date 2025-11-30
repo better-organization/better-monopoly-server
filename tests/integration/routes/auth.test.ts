@@ -23,46 +23,51 @@ describe('Auth Routes', () => {
   });
 
   describe('POST /api/auth/register', () => {
-    it('should handle register request (endpoint not implemented)', async () => {
+    it('should validate required fields', async () => {
       const response = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'test@example.com',
+          email: 'test@example.com', // Wrong field - should be userId
           password: 'password123',
           username: 'testuser',
         });
 
-      // Endpoint returns 404 since not implemented
-      expect(response.status).toBe(404);
+      // Should return validation error for missing userId field
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
     });
 
     it('should reject register with missing fields', async () => {
       const response = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'test@example.com' });
+        .send({ email: 'test@example.com' }); // Missing required fields
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
     });
   });
 
   describe('POST /api/auth/login', () => {
-    it('should handle login request (endpoint not implemented)', async () => {
+    it('should validate required fields', async () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'test@example.com',
+          email: 'test@example.com', // Wrong field - should be userId
           password: 'password123',
         });
 
-      expect(response.status).toBe(404);
+      // Should return validation error for missing userId field
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Both userId and password are required');
     });
 
     it('should reject login with missing fields', async () => {
       const response = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'test@example.com' });
+        .send({ email: 'test@example.com' }); // Missing required fields
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Both userId and password are required');
     });
   });
 

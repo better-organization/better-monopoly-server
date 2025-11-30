@@ -1,12 +1,12 @@
 // Authentication Service Tests
-import { AuthService } from '../src/services/authService';
-import { User } from '../src/models/User';
+import { AuthService } from '../../../src/services/authService';
+import { User } from '../../../src/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { ERROR_MESSAGES } from '../src/utils/errorMessages';
+import { ERROR_MESSAGES } from '../../../src/utils/errorMessages';
 
 // Mock the User model
-jest.mock('../src/models/User');
+jest.mock('../../../src/models/User');
 const MockedUser = User as jest.Mocked<typeof User>;
 
 // Mock bcrypt
