@@ -18,4 +18,8 @@ export const ERROR_MESSAGES = {
   // UserId validation errors
   USERID_REQUIRED: 'UserId is required',
   USERID_TYPE: 'UserId must be a string',
+
+  // Business logic errors
+  USERID_ALREADY_EXISTS: 'UserId already exists',
+  INVALID_CREDENTIALS: 'Invalid credentials',
 } as const;

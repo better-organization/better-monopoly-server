@@ -1,81 +1,199 @@
-// Authentication Service
-// TODO: Implement authentication logic
+// Authentication Service Layer - Business Logic
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { User } from '../models/User';
+import {
+  validateRegistration,
+  validateLogin,
+  validateUserIdOnly,
+} from '../utils/validation';
+import { ERROR_MESSAGES } from '../utils/errorMessages';
+import * as dotenv from 'dotenv';
 
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  passwordHash: string;
-  createdAt: Date;
-  updatedAt: Date;
+dotenv.config();
+
+// Service interfaces
+export interface AuthServiceResponse<
+  T = RegisterResponseData | LoginResponseData | UserIdCheckResponseData,
+> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
-export interface LoginRequest {
-  email: string;
+export interface RegisterData {
+  username: string;
+  password: string;
+  userId: string;
+}
+
+export interface LoginData {
+  userId: string;
   password: string;
 }
 
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
+export interface RegisterResponseData {
+  message: string;
 }
 
-export interface AuthResponse {
+export interface LoginResponseData {
   token: string;
-  user: Omit<User, 'passwordHash'>;
 }
+
+export interface UserIdCheckResponseData {
+  available: boolean;
+}
+
+// Helper function to generate JWT token
+const generateToken = (userId: string, username: string): string => {
+  const JWT_SECRET =
+    process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
+  const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
+  return jwt.sign({ userId, username }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRE,
+  } as jwt.SignOptions);
+};
 
 export class AuthService {
-  // TODO: Implement user registration
-  static async register(_data: RegisterRequest): Promise<AuthResponse> {
-    console.log('register called with:', _data);
-    return {
-      token: '',
-      user: {
-        id: '',
-        username: '',
-        email: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    };
+  /**
+   * Validate if a userId is available for registration
+   */
+  static async validateUserIdExists(
+    userId: string
+  ): Promise<AuthServiceResponse<UserIdCheckResponseData>> {
+    try {
+      // Validate userId format using utils
+      const validationError = validateUserIdOnly(userId);
+      if (validationError) {
+        return {
+          success: false,
+          error: validationError,
+        };
+      }
+
+      const trimmedUserId = userId.trim();
+      const exists = User.userIdExists(trimmedUserId);
+
+      if (exists) {
+        return {
+          success: false,
+          error: ERROR_MESSAGES.USERID_ALREADY_EXISTS,
+        };
+      }
+
+      return {
+        success: true,
+        data: { available: true },
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'An error occurred during userId validation',
+      };
+    }
   }
 
-  // TODO: Implement user login
-  static async login(_data: LoginRequest): Promise<AuthResponse> {
-    console.log('login called with:', _data);
-    return {
-      token: '',
-      user: {
-        id: '',
-        username: '',
-        email: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    };
+  /**
+   * Register a new user
+   */
+  static async registerUser(
+    data: RegisterData
+  ): Promise<AuthServiceResponse<RegisterResponseData>> {
+    try {
+      const { username, password, userId } = data;
+
+      // Validate registration data using utils
+      const validationError = validateRegistration(username, password, userId);
+      if (validationError) {
+        return {
+          success: false,
+          error: validationError,
+        };
+      }
+
+      const trimmedUsername = username.trim();
+      const trimmedUserId = userId.trim();
+
+      // Check if userId already exists
+      if (User.userIdExists(trimmedUserId)) {
+        return {
+          success: false,
+          error: ERROR_MESSAGES.USERID_ALREADY_EXISTS,
+        };
+      }
+
+      // Hash password
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      // Create new user
+      User.create(trimmedUsername, passwordHash, trimmedUserId);
+
+      return {
+        success: true,
+        data: {
+          message: 'User registered successfully. Please login to continue.',
+        },
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'An error occurred during registration',
+      };
+    }
   }
 
-  // TODO: Implement token verification
-  static async verifyToken(_token: string): Promise<User | null> {
-    console.log('verifyToken called with:', _token);
-    return null;
-  }
+  /**
+   * Login user and return JWT token
+   */
+  static async loginUser(
+    data: LoginData
+  ): Promise<AuthServiceResponse<LoginResponseData>> {
+    try {
+      const { userId, password } = data;
 
-  // TODO: Implement password hashing
-  static async hashPassword(_password: string): Promise<string> {
-    console.log('hashPassword called with:', _password);
-    return '';
-  }
+      // Validate login data using utils
+      const validationError = validateLogin(userId, password);
+      if (validationError) {
+        return {
+          success: false,
+          error: validationError,
+        };
+      }
 
-  // TODO: Implement password comparison
-  static async comparePassword(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _password: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _hash: string
-  ): Promise<boolean> {
-    return false;
+      // Check if user exists
+      const user = User.findByUserId(userId);
+      if (!user) {
+        return {
+          success: false,
+          error: ERROR_MESSAGES.INVALID_CREDENTIALS,
+        };
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(
+        password,
+        user.password_hash
+      );
+      if (!isPasswordValid) {
+        return {
+          success: false,
+          error: ERROR_MESSAGES.INVALID_CREDENTIALS,
+        };
+      }
+
+      // Generate JWT token
+      const token = generateToken(user.userId, user.username);
+
+      return {
+        success: true,
+        data: { token },
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'An error occurred during login',
+      };
+    }
   }
 }

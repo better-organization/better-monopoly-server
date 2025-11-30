@@ -1,15 +1,6 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
-import {
-  validateRegistration,
-  validateLogin,
-  validateUserIdOnly,
-} from '../utils/validation';
-import * as dotenv from 'dotenv';
-
-dotenv.config(); // Loads variables from .env into process.env
+import { AuthService } from '../services/authService';
+import { ERROR_MESSAGES } from '../utils/errorMessages';
 
 // Interface for request bodies
 interface RegisterRequest {
@@ -17,25 +8,6 @@ interface RegisterRequest {
   password: string;
   userId: string;
 }
-
-// Helper function to generate JWT token
-const generateToken = (userId: string, username: string): string => {
-  const JWT_SECRET =
-    process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
-  const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
-  return jwt.sign({ userId, username }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRE,
-  } as jwt.SignOptions);
-};
-
-// Clean validation using simple object iteration approach
-const validateRegistrationInput = (
-  username: string,
-  password: string,
-  userId: string
-): string | null => {
-  return validateRegistration(username, password, userId);
-};
 
 /**
  * POST /api/auth/userIdExists
@@ -48,21 +20,20 @@ export const userIdExists = async (
   try {
     const { userId } = req.body;
 
-    const validationError = validateUserIdOnly(userId);
-    if (validationError) {
-      res.status(400).json({
-        error: 'Validation failed',
-        message: validationError,
-      });
-      return;
-    }
+    // Use service layer for validation and business logic
+    const result = await AuthService.validateUserIdExists(userId);
 
-    const trimmedUserId = userId.trim();
-    // Check if userId already exists
-    if (User.userIdExists(trimmedUserId)) {
-      res.status(409).json({
-        error: 'Conflict',
-        message: 'UserId already exists',
+    if (!result.success) {
+      const statusCode =
+        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS ? 409 : 400;
+      const errorType =
+        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
+          ? 'Conflict'
+          : 'Validation failed';
+
+      res.status(statusCode).json({
+        error: errorType,
+        message: result.error,
       });
       return;
     }
@@ -89,43 +60,32 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password, userId }: RegisterRequest = req.body;
 
-    // Validate input
-    const validationError = validateRegistrationInput(
+    // Use service layer for registration business logic
+    const result = await AuthService.registerUser({
       username,
       password,
-      userId
-    );
-    if (validationError) {
-      res.status(400).json({
-        error: 'Validation failed',
-        message: validationError,
+      userId,
+    });
+
+    if (!result.success) {
+      const statusCode =
+        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS ? 409 : 400;
+      const errorType =
+        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
+          ? 'Conflict'
+          : 'Validation failed';
+
+      res.status(statusCode).json({
+        error: errorType,
+        message: result.error,
       });
       return;
     }
-
-    const trimmedUsername = username.trim();
-    const trimmedUserId = userId.trim();
-
-    // Check if userId already exists
-    if (User.userIdExists(trimmedUserId)) {
-      res.status(409).json({
-        error: 'Conflict',
-        message: 'UserId already exists',
-      });
-      return;
-    }
-
-    // Hash password
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Create new user with custom userId
-    User.create(trimmedUsername, passwordHash, trimmedUserId);
 
     // Success response (no token sent)
     res.status(201).json({
       success: true,
-      message: 'User registered successfully. Please login to continue.',
+      message: result.data?.message || 'User registered successfully',
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -145,46 +105,25 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { userId, password }: { userId?: string; password?: string } =
       req.body;
 
-    // Clean validation using the simple validator
-    const validationError = validateLogin(userId || '', password || '');
-    if (validationError) {
-      res.status(400).json({
-        error: validationError,
+    // Use service layer for login business logic
+    const result = await AuthService.loginUser({
+      userId: userId || '',
+      password: password || '',
+    });
+
+    if (!result.success) {
+      const statusCode =
+        result.error === ERROR_MESSAGES.INVALID_CREDENTIALS ? 401 : 400;
+
+      res.status(statusCode).json({
+        error: result.error,
       });
       return;
     }
-
-    // At this point we know userId and password are valid strings
-    const validUserId = userId!;
-    const validPassword = password!;
-
-    // Check if user exists
-    const user = User.findByUserId(validUserId);
-    if (!user) {
-      res.status(401).json({
-        error: 'Invalid credentials',
-      });
-      return;
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(
-      validPassword,
-      user.password_hash
-    );
-    if (!isPasswordValid) {
-      res.status(401).json({
-        error: 'Invalid credentials',
-      });
-      return;
-    }
-
-    // Generate JWT token
-    const token = generateToken(user.userId, user.username);
 
     // Success response with token only (user data is in JWT payload)
     res.status(200).json({
-      token,
+      token: result.data?.token,
     });
   } catch (error) {
     console.error('Login error:', error);
