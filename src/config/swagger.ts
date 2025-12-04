@@ -17,16 +17,6 @@ const options: swaggerJsdoc.Options = {
         name: 'Better Organization',
       },
     },
-    servers: [
-      {
-        url: 'http://localhost:8080',
-        description: 'Development server',
-      },
-      {
-        url: 'http://localhost:8080',
-        description: 'Production server',
-      },
-    ],
     components: {
       securitySchemes: {
         bearerAuth: {

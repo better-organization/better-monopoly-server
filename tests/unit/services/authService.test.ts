@@ -274,7 +274,7 @@ describe('AuthService', () => {
       const result = await AuthService.loginUser(validLoginData);
       
       expect(result.success).toBe(false);
-      expect(result.error).toBe('An error occurred during login');
+      expect(result.error).toBe('Bcrypt error');
     });
   });
 });

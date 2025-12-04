@@ -23,30 +23,20 @@ export const userIdExists = async (
     // Use service layer for validation and business logic
     const result = await AuthService.validateUserIdExists(userId);
 
-    if (!result.success) {
-      const statusCode =
-        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS ? 409 : 400;
-      const errorType =
-        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
-          ? 'Conflict'
-          : 'Validation failed';
+    const statusCode = result.success
+      ? 200
+      : result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
+        ? 409
+        : 400;
 
-      res.status(statusCode).json({
-        error: errorType,
-        message: result.error,
-      });
-      return;
-    }
-
-    // UserId is available
-    res.status(200).json({
-      success: true,
-      message: 'UserId is available',
+    res.status(statusCode).json({
+      success: result.success,
+      message: result.success ? 'UserId is available' : result.error,
     });
   } catch (error) {
     console.error('UserIdExists error:', error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      success: false,
       message: 'An error occurred during validating user id',
     });
   }
@@ -60,32 +50,23 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password, userId }: RegisterRequest = req.body;
 
-    // Use service layer for registration business logic
     const result = await AuthService.registerUser({
       username,
       password,
       userId,
     });
 
-    if (!result.success) {
-      const statusCode =
-        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS ? 409 : 400;
-      const errorType =
-        result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
-          ? 'Conflict'
-          : 'Validation failed';
+    const statusCode = result.success
+      ? 201
+      : result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
+        ? 409
+        : 400;
 
-      res.status(statusCode).json({
-        error: errorType,
-        message: result.error,
-      });
-      return;
-    }
-
-    // Success response (no token sent)
-    res.status(201).json({
-      success: true,
-      message: result.data?.message || 'User registered successfully',
+    res.status(statusCode).json({
+      success: result.success,
+      message: result.success
+        ? result.data?.message || 'User registered successfully'
+        : result.error,
     });
   } catch (error) {
     console.error('Registration error:', error);

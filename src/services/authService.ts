@@ -55,21 +55,11 @@ const generateToken = (userId: string, username: string): string => {
 };
 
 export class AuthService {
-  /**
-   * Validate if a userId is available for registration
-   */
   static async validateUserIdExists(
     userId: string
   ): Promise<AuthServiceResponse<UserIdCheckResponseData>> {
     try {
-      // Validate userId format using utils
-      const validationError = validateUserIdOnly(userId);
-      if (validationError) {
-        return {
-          success: false,
-          error: validationError,
-        };
-      }
+      validateUserIdOnly(userId);
 
       const trimmedUserId = userId.trim();
       const exists = User.userIdExists(trimmedUserId);
@@ -85,10 +75,13 @@ export class AuthService {
         success: true,
         data: { available: true },
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
-        error: 'An error occurred during userId validation',
+        error:
+          error instanceof Error
+            ? error?.message
+            : 'An error occurred during login',
       };
     }
   }
@@ -102,14 +95,7 @@ export class AuthService {
     try {
       const { username, password, userId } = data;
 
-      // Validate registration data using utils
-      const validationError = validateRegistration(username, password, userId);
-      if (validationError) {
-        return {
-          success: false,
-          error: validationError,
-        };
-      }
+      validateRegistration(username, password, userId);
 
       const trimmedUsername = username.trim();
       const trimmedUserId = userId.trim();
@@ -135,10 +121,13 @@ export class AuthService {
           message: 'User registered successfully. Please login to continue.',
         },
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
-        error: 'An error occurred during registration',
+        error:
+          error instanceof Error
+            ? error?.message
+            : 'An error occurred during login',
       };
     }
   }
@@ -152,14 +141,7 @@ export class AuthService {
     try {
       const { userId, password } = data;
 
-      // Validate login data using utils
-      const validationError = validateLogin(userId, password);
-      if (validationError) {
-        return {
-          success: false,
-          error: validationError,
-        };
-      }
+      validateLogin(userId, password);
 
       // Check if user exists
       const user = User.findByUserId(userId);
@@ -182,17 +164,19 @@ export class AuthService {
         };
       }
 
-      // Generate JWT token
       const token = generateToken(user.userId, user.username);
 
       return {
         success: true,
         data: { token },
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
-        error: 'An error occurred during login',
+        error:
+          error instanceof Error
+            ? error?.message
+            : 'An error occurred during login',
       };
     }
   }
