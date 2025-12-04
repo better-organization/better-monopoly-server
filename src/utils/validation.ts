@@ -5,7 +5,7 @@ export const validateRegistration = (
   username: string,
   password: string,
   userId: string
-): string | null => {
+): void => {
   const registrationChecks = {
     [ERROR_MESSAGES.REGISTRATION_REQUIRED_FIELDS]: () =>
       !username || !password || !userId,
@@ -26,17 +26,12 @@ export const validateRegistration = (
     registrationChecks
   )) {
     if (checkFunction()) {
-      return errorMessage;
+      throw new Error(errorMessage);
     }
   }
-
-  return null;
 };
 
-export const validateLogin = (
-  userId: string,
-  password: string
-): string | null => {
+export const validateLogin = (userId: string, password: string): void => {
   const loginChecks = {
     [ERROR_MESSAGES.LOGIN_REQUIRED_FIELDS]: () => !userId || !password,
     [ERROR_MESSAGES.LOGIN_FIELD_TYPES]: () =>
@@ -45,14 +40,12 @@ export const validateLogin = (
 
   for (const [errorMessage, checkFunction] of Object.entries(loginChecks)) {
     if (checkFunction()) {
-      return errorMessage;
+      throw new Error(errorMessage);
     }
   }
-
-  return null;
 };
 
-export const validateUserIdOnly = (userId: string): string | null => {
+export const validateUserIdOnly = (userId: string): void => {
   const userIdChecks = {
     [ERROR_MESSAGES.USERID_REQUIRED]: () => !userId,
     [ERROR_MESSAGES.USERID_TYPE]: () => typeof userId !== 'string',
@@ -63,9 +56,7 @@ export const validateUserIdOnly = (userId: string): string | null => {
 
   for (const [errorMessage, checkFunction] of Object.entries(userIdChecks)) {
     if (checkFunction()) {
-      return errorMessage;
+      throw new Error(errorMessage);
     }
   }
-
-  return null;
 };

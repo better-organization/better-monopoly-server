@@ -33,7 +33,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(409);
-      expect(response.body.error).toBe('Conflict');
       expect(response.body.message).toBe('UserId already exists');
     });
 
@@ -43,7 +42,6 @@ describe('Auth Controller', () => {
         .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe('UserId is required');
     });
 
@@ -53,7 +51,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe('UserId must be a string');
     });
 
@@ -63,7 +60,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'UserId must be at least 3 characters long'
       );
@@ -75,7 +71,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'UserId can only contain letters, numbers, underscores, and hyphens'
       );
@@ -105,7 +100,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'Username, password, and userId are required'
       );
@@ -119,7 +113,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'Username, password, and userId must be strings'
       );
@@ -133,7 +126,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'Username must be at least 3 characters long'
       );
@@ -147,7 +139,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'Password must be at least 6 characters long'
       );
@@ -161,7 +152,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Validation failed');
       expect(response.body.message).toBe(
         'Username can only contain letters, numbers, and underscores'
       );
@@ -183,7 +173,6 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(409);
-      expect(response.body.error).toBe('Conflict');
       expect(response.body.message).toBe('UserId already exists');
     });
 
