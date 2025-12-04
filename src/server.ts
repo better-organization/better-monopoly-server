@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import healthRoutes from './routes/health';
@@ -49,6 +51,12 @@ app.use(
 // Logging middleware
 app.use(morgan(process.env['NODE_ENV'] === 'production' ? 'combined' : 'dev'));
 
+// Swagger API documentation (available in all environments)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Better Monopoly API Docs',
+}));
+
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
@@ -68,6 +76,7 @@ if (require.main === module) {
     console.log(
       `🌍 CORS enabled for: ${process.env['FRONTEND_URL'] || 'http://localhost:3000'}`
     );
+    console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
   });
 
   // Graceful shutdown

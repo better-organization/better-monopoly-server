@@ -66,6 +66,70 @@ For development:
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
+## API Documentation
+
+### Interactive Documentation
+The server includes comprehensive Swagger/OpenAPI documentation accessible at:
+- **Local**: http://localhost:8080/api-docs
+- **Interactive UI**: Test endpoints directly from the browser
+
+### Authentication Endpoints
+
+#### Check UserId Availability
+```bash
+curl -X POST http://localhost:8080/api/auth/userIdExists \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "player-123"}'
+```
+
+#### Register New User
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "player123",
+    "password": "SecurePass123",
+    "userId": "player-123-unique"
+  }'
+```
+
+#### Login
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "player-123-unique",
+    "password": "SecurePass123"
+  }'
+```
+
+Response includes JWT token:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+### Health Endpoints
+- `GET /api/health` - Health check with uptime and environment info
+- `GET /api/health/ready` - Readiness probe
+- `GET /api/health/live` - Liveness probe
+
+### Game Endpoints
+- `GET /api/game/test` - Game service status
+- `GET /api/game/board/:boardId/version/:version` - Get board layout
+
+### Rate Limiting
+Authentication endpoints are rate-limited in production:
+- **Limit**: 5 requests per 15 minutes per IP
+- **Applies to**: `/register`, `/login`, `/userIdExists`
+- **Disabled in**: Test environment
+
+### Validation Rules
+- **Username**: 3+ characters, alphanumeric and underscores only
+- **Password**: 6+ characters minimum
+- **UserId**: 3+ characters, alphanumeric, underscores, and hyphens
+
 ## Endpoints
 - `GET /api/health` - Health check
 - `GET /api/auth/test` - Auth test
