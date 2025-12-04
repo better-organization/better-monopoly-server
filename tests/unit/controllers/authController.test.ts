@@ -266,7 +266,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Both userId and password are required');
+      expect(response.body.message).toBe('Both userId and password are required');
     });
 
     it('should return 400 when password is missing', async () => {
@@ -275,7 +275,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Both userId and password are required');
+      expect(response.body.message).toBe('Both userId and password are required');
     });
 
     it('should return 401 for non-existent user', async () => {
@@ -285,7 +285,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid credentials');
+      expect(response.body.message).toBe('Invalid credentials');
     });
 
     it('should return 401 for incorrect password', async () => {
@@ -295,7 +295,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid credentials');
+      expect(response.body.message).toBe('Invalid credentials');
     });
   });
 

@@ -71,7 +71,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      success: false,
       message: 'An error occurred during registration',
     });
   }
@@ -92,24 +92,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       password: password || '',
     });
 
-    if (!result.success) {
-      const statusCode =
-        result.error === ERROR_MESSAGES.INVALID_CREDENTIALS ? 401 : 400;
-
-      res.status(statusCode).json({
-        error: result.error,
-      });
-      return;
-    }
+    const statusCode = result.success
+      ? 200
+      : result.error === ERROR_MESSAGES.INVALID_CREDENTIALS
+        ? 401
+        : 400;
 
     // Success response with token only (user data is in JWT payload)
-    res.status(200).json({
+    res.status(statusCode).json({
+      success: result.success,
+      message: result.error,
       token: result.data?.token,
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
-      error: 'Internal server error',
+      success: false,
+      message: 'An error occurred during login',
     });
   }
 };
@@ -131,7 +130,7 @@ export const getProfile = async (
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      success: false,
       message: 'An error occurred while fetching profile',
     });
   }

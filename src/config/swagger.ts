@@ -17,6 +17,12 @@ const options: swaggerJsdoc.Options = {
         name: 'Better Organization',
       },
     },
+    servers: [
+      {
+        url: '/',
+        description: 'Back-end server',
+      }
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
