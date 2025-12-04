@@ -2,8 +2,38 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
-// Health check endpoint
-
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check
+ *     description: Check if the server is healthy and running
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Better Monopoly Server is healthy!"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 uptime:
+ *                   type: number
+ *                   description: Server uptime in seconds
+ *                   example: 123.456
+ *                 environment:
+ *                   type: string
+ *                   example: "development"
+ */
 router.get('/', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -14,7 +44,31 @@ router.get('/', (_req: Request, res: Response) => {
   });
 });
 
-// Readiness probe
+/**
+ * @swagger
+ * /api/health/ready:
+ *   get:
+ *     summary: Readiness probe
+ *     description: Check if the server is ready to accept connections
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is ready
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Server is ready to accept connections"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ */
 router.get('/ready', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -23,7 +77,31 @@ router.get('/ready', (_req: Request, res: Response) => {
   });
 });
 
-// Liveness probe
+/**
+ * @swagger
+ * /api/health/live:
+ *   get:
+ *     summary: Liveness probe
+ *     description: Check if the server is alive
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is alive
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Server is alive"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ */
 router.get('/live', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
