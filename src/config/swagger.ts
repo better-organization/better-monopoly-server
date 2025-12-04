@@ -46,7 +46,8 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               minLength: 3,
               pattern: '^[a-zA-Z0-9_]+$',
-              description: 'Username (3+ characters, alphanumeric and underscores only)',
+              description:
+                'Username (3+ characters, alphanumeric and underscores only)',
               example: 'player123',
             },
             password: {
@@ -60,7 +61,8 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               minLength: 3,
               pattern: '^[a-zA-Z0-9_-]+$',
-              description: 'Unique user identifier (3+ characters, alphanumeric, underscores, and hyphens)',
+              description:
+                'Unique user identifier (3+ characters, alphanumeric, underscores, and hyphens)',
               example: 'player-123-unique',
             },
           },
@@ -106,7 +108,8 @@ const options: swaggerJsdoc.Options = {
             },
             message: {
               type: 'string',
-              example: 'User registered successfully. Please login to continue.',
+              example:
+                'User registered successfully. Please login to continue.',
             },
           },
         },
@@ -225,7 +228,8 @@ const options: swaggerJsdoc.Options = {
             },
             message: {
               type: 'string',
-              example: 'Too many requests from this IP, please try again later.',
+              example:
+                'Too many requests from this IP, please try again later.',
             },
           },
         },
@@ -276,4 +280,3 @@ const options: swaggerJsdoc.Options = {
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
-

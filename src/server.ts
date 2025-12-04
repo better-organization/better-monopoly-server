@@ -52,10 +52,14 @@ app.use(
 app.use(morgan(process.env['NODE_ENV'] === 'production' ? 'combined' : 'dev'));
 
 // Swagger API documentation (available in all environments)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Better Monopoly API Docs',
-}));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Better Monopoly API Docs',
+  })
+);
 
 // Routes
 app.use('/api/health', healthRoutes);
