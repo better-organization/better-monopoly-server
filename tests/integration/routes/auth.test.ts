@@ -58,7 +58,7 @@ describe('Auth Routes', () => {
 
       // Should return validation error for missing userId field
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Both userId and password are required');
+      expect(response.body.message).toBe('Both userId and password are required');
     });
 
     it('should reject login with missing fields', async () => {
@@ -67,7 +67,7 @@ describe('Auth Routes', () => {
         .send({ email: 'test@example.com' }); // Missing required fields
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Both userId and password are required');
+      expect(response.body.message).toBe('Both userId and password are required');
     });
   });
 
@@ -75,7 +75,7 @@ describe('Auth Routes', () => {
     it('should handle logout request (endpoint not implemented)', async () => {
       const response = await request(app).post('/api/auth/logout').send();
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
     });
   });
 

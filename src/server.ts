@@ -53,7 +53,7 @@ app.use(morgan(process.env['NODE_ENV'] === 'production' ? 'combined' : 'dev'));
 
 // Swagger API documentation (available in all environments)
 app.use(
-  '/api-docs',
+  '/swagger',
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',

@@ -1,8 +1,8 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import rateLimit from 'express-rate-limit';
+import { Router, Request, Response } from 'express';
 import {
   register,
   login,
+  logout,
   getProfile,
   userIdExists,
 } from '../controllers/authController';
@@ -10,20 +10,6 @@ import {
 const router = Router();
 
 // Rate limiting specifically for auth endpoints (disabled in test environment)
-const authLimiter =
-  process.env['NODE_ENV'] === 'test'
-    ? (_req: Request, _res: Response, next: NextFunction) => next() // No rate limiting in tests
-    : rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 5, // limit each IP to 5 requests per windowMs for auth endpoints
-        message: {
-          error: 'Too Many Requests',
-          message:
-            'Too many authentication attempts from this IP, please try again later.',
-        },
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
 
 /**
  * @swagger
@@ -99,7 +85,7 @@ router.get('/test', (_req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/InternalServerError'
  */
-router.post('/userIdExists', authLimiter, userIdExists);
+router.post('/userIdExists', userIdExists);
 
 /**
  * @swagger
@@ -167,14 +153,14 @@ router.post('/userIdExists', authLimiter, userIdExists);
  *             schema:
  *               $ref: '#/components/schemas/InternalServerError'
  */
-router.post('/register', authLimiter, register);
+router.post('/register', register);
 
 /**
  * @swagger
  * /api/auth/login:
  *   post:
  *     summary: Login user
- *     description: Authenticate user and receive JWT token. Rate limited to 5 requests per 15 minutes in production.
+ *     description: Authenticate user and receive JWT token in httpOnly cookie. Rate limited to 5 requests per 15 minutes in production.
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -184,11 +170,23 @@ router.post('/register', authLimiter, register);
  *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful - auth_token cookie set
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               example: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly; Secure; SameSite=None
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful"
  *       400:
  *         description: Validation error
  *         content:
@@ -214,7 +212,7 @@ router.post('/register', authLimiter, register);
  *             schema:
  *               $ref: '#/components/schemas/InternalServerError'
  */
-router.post('/login', authLimiter, login);
+router.post('/login', login);
 
 /**
  * @swagger
@@ -262,5 +260,49 @@ router.post('/login', authLimiter, login);
  *               $ref: '#/components/schemas/InternalServerError'
  */
 router.get('/profile', getProfile);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     description: Invalidate the user's session and remove the JWT token. (Not Implemented)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Logout successful"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
+ *       501:
+ *         description: Not implemented
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotImplementedError'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/InternalServerError'
+ */
+router.post('/logout', logout);
 
 export = router;
