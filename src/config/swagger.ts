@@ -17,6 +17,12 @@ const options: swaggerJsdoc.Options = {
         name: 'Better Organization',
       },
     },
+    servers: [
+      {
+        url: '/',
+        description: 'Back-end server',
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -206,20 +212,6 @@ const options: swaggerJsdoc.Options = {
             error: {
               type: 'string',
               example: ERROR_MESSAGES.INVALID_CREDENTIALS,
-            },
-          },
-        },
-        RateLimitError: {
-          type: 'object',
-          properties: {
-            error: {
-              type: 'string',
-              example: 'Too Many Requests',
-            },
-            message: {
-              type: 'string',
-              example:
-                'Too many requests from this IP, please try again later.',
             },
           },
         },

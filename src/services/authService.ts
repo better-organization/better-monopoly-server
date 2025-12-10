@@ -38,6 +38,7 @@ export interface RegisterResponseData {
 
 export interface LoginResponseData {
   token: string;
+  expires: Date;
 }
 
 export interface UserIdCheckResponseData {
@@ -166,9 +167,14 @@ export class AuthService {
 
       const token = generateToken(user.userId, user.username);
 
+      // Calculate expiration date (30 days from now)
+      const JWT_EXPIRE_DAYS = parseInt(process.env['JWT_EXPIRE_DAYS'] || '30');
+      const expires = new Date();
+      expires.setDate(expires.getDate() + JWT_EXPIRE_DAYS);
+
       return {
         success: true,
-        data: { token },
+        data: { token, expires },
       };
     } catch (error) {
       return {

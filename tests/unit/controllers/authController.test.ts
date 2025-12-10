@@ -1,4 +1,4 @@
-import request, { Response } from 'supertest';
+import request from 'supertest';
 import app from '../../../src/server';
 import { User } from '../../../src/models/User';
 
@@ -241,23 +241,44 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(response.body.token).toBeDefined();
-      expect(typeof response.body.token).toBe('string');
-      expect(response.body.userId).toBeUndefined(); // Should not be in response
-      expect(response.body.username).toBeUndefined(); // Should not be in response
+      expect(response.body.success).toBe(true);
+      expect(response.body.userId).toBeUndefined();
+      expect(response.body.username).toBeUndefined();
+
+      // Check if Set-Cookie header exists
+      const setCookieHeader = response.headers['set-cookie'] as string[] | undefined;
+      expect(setCookieHeader).toBeDefined();
+      expect(Array.isArray(setCookieHeader)).toBe(true);
+
+      // Find the auth_token cookie
+      const authCookie = setCookieHeader?.find((cookie: string) =>
+        cookie.startsWith('auth_token=')
+      );
+      expect(authCookie).toBeDefined();
+
+      // Extract and verify the token from the cookie
+      const tokenMatch = authCookie?.match(/auth_token=([^;]+)/);
+      expect(tokenMatch).toBeDefined();
+      const token = tokenMatch?.[1];
+      expect(token).toBeDefined();
 
       // Verify JWT token structure
-      const tokenParts = response.body.token.split('.');
+      const tokenParts = token?.split('.');
       expect(tokenParts).toHaveLength(3);
 
-      // Decode and verify payload contains both userId and username
+      // Decode and verify payload
       const payload = JSON.parse(
-        Buffer.from(tokenParts[1], 'base64').toString()
+        Buffer.from(tokenParts![1]!, 'base64').toString('utf-8')
       );
       expect(payload.userId).toBe('test-user-123');
       expect(payload.username).toBe('testuser');
       expect(payload.iat).toBeDefined();
       expect(payload.exp).toBeDefined();
+
+      // Verify cookie attributes
+      expect(authCookie).toContain('HttpOnly');
+      expect(authCookie).toContain('Path=/');
+      expect(authCookie).toContain('SameSite=Lax');
     });
 
     it('should return 400 when userId is missing', async () => {
@@ -266,7 +287,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Both userId and password are required');
+      expect(response.body.message).toBe('Both userId and password are required');
     });
 
     it('should return 400 when password is missing', async () => {
@@ -275,7 +296,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Both userId and password are required');
+      expect(response.body.message).toBe('Both userId and password are required');
     });
 
     it('should return 401 for non-existent user', async () => {
@@ -285,7 +306,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid credentials');
+      expect(response.body.message).toBe('Invalid credentials');
     });
 
     it('should return 401 for incorrect password', async () => {
@@ -295,7 +316,7 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid credentials');
+      expect(response.body.message).toBe('Invalid credentials');
     });
   });
 
@@ -319,28 +340,6 @@ describe('Auth Controller', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Authentication service is working!');
       expect(response.body.timestamp).toBeDefined();
-    });
-  });
-
-  describe('Rate Limiting', () => {
-    it('should be disabled in test environment', async () => {
-      // Make multiple requests quickly - should not be rate limited in tests
-      const promises: Promise<Response>[] = [];
-      for (let i = 0; i < 6; i++) {
-        promises.push(
-          request(app)
-            .post('/api/auth/userIdExists')
-            .send({ userId: `test-user-${i}` })
-        );
-      }
-
-      const responses = await Promise.all(promises);
-
-      // All requests should succeed (no rate limiting in test environment)
-      responses.forEach(response => {
-        expect([200, 400].includes(response.status)).toBe(true);
-        expect(response.status).not.toBe(429); // Should not be rate limited
-      });
     });
   });
 });
