@@ -38,7 +38,7 @@ export interface RegisterResponseData {
 
 export interface LoginResponseData {
   token: string;
-  expires: Date
+  expires: Date;
 }
 
 export interface UserIdCheckResponseData {
