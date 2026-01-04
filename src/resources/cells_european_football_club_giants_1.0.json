@@ -38,7 +38,7 @@
   {
     "index": 3,
     "name": "CLUB FUNDS",
-    "cell_type": "card",
+    "cell_type": "special",
     "cell_sub_type": "Community Chest",
     "special_details": {
       "action_keyword": "card"
@@ -128,7 +128,7 @@
   {
     "index": 8,
     "name": "CLUB TOURS",
-    "cell_type": "card",
+    "cell_type": "special",
     "cell_sub_type": "Chance",
     "special_details": {
       "action_keyword": "chance"
