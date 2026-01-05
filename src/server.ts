@@ -20,7 +20,18 @@ const app = express();
 const PORT = process.env['PORT'] || 8080;
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'validator.swagger.io'],
+      },
+    },
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -80,7 +91,7 @@ if (require.main === module) {
     console.log(
       `🌍 CORS enabled for: ${process.env['FRONTEND_URL'] || 'http://localhost:3000'}`
     );
-    console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/swagger`);
   });
 
   // Graceful shutdown
