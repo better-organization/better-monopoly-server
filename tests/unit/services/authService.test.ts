@@ -255,7 +255,7 @@ describe('AuthService', () => {
       expect(result.success).toBe(true);
       expect(result.data?.token).toBe('jwt.token.here');
       expect(mockedJwt.sign).toHaveBeenCalledWith(
-        { userId: 'user123', username: 'testuser' },
+        { userId: 'user123', username: 'testuser', roomCode: null, gameId: null },
         expect.any(String),
         { expiresIn: expect.any(String) }
       );

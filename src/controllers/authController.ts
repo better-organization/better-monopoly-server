@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { ERROR_MESSAGES } from '../utils/errorMessages';
+import { cookieUtil } from '../utils/cookieUtil';
 
 // Interface for request bodies
 interface RegisterRequest {
@@ -100,16 +101,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Set cookie with proper configuration for cross-origin requests
     if (result.success && result.data?.token) {
-      const isProduction = process.env['NODE_ENV'] === 'production';
-
-      res.cookie('auth_token', result.data.token, {
-        httpOnly: true, // Prevents JavaScript access (XSS protection)
-        secure: isProduction, // HTTPS only in production
-        sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-origin in production
-        expires: result.data.expires, // Cookie expiration date
-        path: '/', // Available for all routes
-        domain: process.env['COOKIE_DOMAIN'] || undefined, // Optional: for cross-subdomain cookies
-      });
+      cookieUtil.setCookie(res, 'auth_token', result.data.token, 24);
     }
 
     // Success response
@@ -137,7 +129,7 @@ export const getProfile = async (
   try {
     // TODO: Implement profile endpoint with auth middleware later
     res.status(501).json({
-      error: 'Not Implemented',
+      success: false,
       message: 'Profile endpoint will be implemented later',
     });
   } catch (error) {
