@@ -1,6 +1,5 @@
 // Authentication Service Layer - Business Logic
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import {
   validateRegistration,
@@ -9,6 +8,7 @@ import {
 } from '../utils/validation';
 import { ERROR_MESSAGES } from '../utils/errorMessages';
 import * as dotenv from 'dotenv';
+import { Token } from '../models/Token';
 
 dotenv.config();
 const SALT_ROUNDS = 12;
@@ -39,22 +39,11 @@ export interface RegisterResponseData {
 
 export interface LoginResponseData {
   token: string;
-  expires: Date;
 }
 
 export interface UserIdCheckResponseData {
   available: boolean;
 }
-
-// Helper function to generate JWT token
-const generateToken = (userId: string, username: string): string => {
-  const JWT_SECRET =
-    process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
-  const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
-  return jwt.sign({ userId, username }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRE,
-  } as jwt.SignOptions);
-};
 
 export class AuthService {
   static async validateUserIdExists(
@@ -156,16 +145,11 @@ export class AuthService {
         };
       }
 
-      const token = generateToken(user.userId, user.username);
-
-      // Calculate expiration date (30 days from now)
-      const JWT_EXPIRE_DAYS = parseInt(process.env['JWT_EXPIRE_DAYS'] || '30');
-      const expires = new Date();
-      expires.setDate(expires.getDate() + JWT_EXPIRE_DAYS);
+      const token = Token.generateToken(user.userId, user.username);
 
       return {
         success: true,
-        data: { token, expires },
+        data: { token },
       };
     } catch (error) {
       return {
