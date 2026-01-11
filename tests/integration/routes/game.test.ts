@@ -121,6 +121,86 @@ describe('Game Routes', () => {
     });
   });
 
+  describe('POST /api/game/roll-dice', () => {
+    it('should return 200 with dice roll result', async () => {
+      const response = await request(app).post('/api/game/roll-dice').send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success');
+      expect(response.body.success).toBe(true);
+      expect(response.body).toHaveProperty('data');
+    });
+
+    it('should return dice values between 1 and 6', async () => {
+      const response = await request(app).post('/api/game/roll-dice').send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveProperty('dice');
+      expect(Array.isArray(response.body.data.dice)).toBe(true);
+      expect(response.body.data.dice.length).toBe(2);
+
+      const [dice1, dice2] = response.body.data.dice;
+      expect(dice1).toBeGreaterThanOrEqual(1);
+      expect(dice1).toBeLessThanOrEqual(6);
+      expect(dice2).toBeGreaterThanOrEqual(1);
+      expect(dice2).toBeLessThanOrEqual(6);
+    });
+
+    it('should return correct total', async () => {
+      const response = await request(app).post('/api/game/roll-dice').send({});
+
+      expect(response.status).toBe(200);
+      const { dice, total } = response.body.data;
+      expect(total).toBe(dice[0] + dice[1]);
+      expect(total).toBeGreaterThanOrEqual(2);
+      expect(total).toBeLessThanOrEqual(12);
+    });
+
+    it('should include timestamp in response', async () => {
+      const response = await request(app).post('/api/game/roll-dice').send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveProperty('timestamp');
+      expect(typeof response.body.data.timestamp).toBe('string');
+
+      // Verify it's a valid ISO date string
+      const timestamp = new Date(response.body.data.timestamp);
+      expect(timestamp.toString()).not.toBe('Invalid Date');
+    });
+
+    it('should accept optional gameId and playerId', async () => {
+      const response = await request(app)
+        .post('/api/game/roll-dice')
+        .send({
+          gameId: 'game-123',
+          playerId: 'player-456',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('dice');
+      expect(response.body.data).toHaveProperty('total');
+      expect(response.body.data).toHaveProperty('timestamp');
+    });
+
+    it('should work without request body', async () => {
+      const response = await request(app).post('/api/game/roll-dice');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should return all required fields in data object', async () => {
+      const response = await request(app).post('/api/game/roll-dice').send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveProperty('dice');
+      expect(response.body.data).toHaveProperty('total');
+      expect(response.body.data).toHaveProperty('timestamp');
+      expect(Object.keys(response.body.data).length).toBe(3);
+    });
+  });
+
   describe('404 handling for undefined game routes', () => {
     it('should return 404 for unknown game routes', async () => {
       const response = await request(app).get('/api/game/unknown');
