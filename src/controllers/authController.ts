@@ -2,17 +2,12 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { ERROR_MESSAGES } from '../utils/errorMessages';
 
-// Interface for request bodies
 interface RegisterRequest {
   username: string;
   password: string;
   userId: string;
 }
 
-/**
- * POST /api/auth/userIdExists
- * User Id validation Endpoint
- */
 export const userIdExists = async (
   req: Request,
   res: Response
@@ -20,7 +15,6 @@ export const userIdExists = async (
   try {
     const { userId } = req.body;
 
-    // Use service layer for validation and business logic
     const result = await AuthService.validateUserIdExists(userId);
 
     const statusCode = result.success
@@ -42,10 +36,6 @@ export const userIdExists = async (
   }
 };
 
-/**
- * POST /api/auth/register
- * User Registration Endpoint
- */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password, userId }: RegisterRequest = req.body;
@@ -77,10 +67,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * POST /api/auth/login
- * User Login Endpoint
- */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, password }: { userId?: string; password?: string } =
@@ -116,6 +102,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(statusCode).json({
       success: result.success,
       message: result.success ? 'Login successful' : result.error,
+      data: result.success ? result.data : undefined,
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -126,10 +113,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * GET /api/auth/profile
- * Get User Profile (placeholder for later implementation)
- */
 export const getProfile = async (
   _req: Request,
   res: Response
@@ -149,10 +132,6 @@ export const getProfile = async (
   }
 };
 
-/**
- * POST /api/auth/logout
- * Logout User - Clear auth cookie
- */
 export const logout = async (_req: Request, res: Response): Promise<void> => {
   try {
     const isLocal = process.env['NODE_ENV'] === 'local';

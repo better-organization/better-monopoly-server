@@ -1,126 +1,116 @@
-// User Model with In-Memory Storage
-// TODO: Replace with MongoDB integration later
+import { AuthData } from './AuthData';
+import { UserData } from './UserData';
 
 export interface IUser {
-  id: number; // Primary Key (Auto-incrementing integer)
-  userId: string; // UUID for JWT payload
-  username: string; // Unique username
-  password_hash: string; // Bcrypt hashed password
+  uniqueID: string;
+  userId: string;
+  username: string;
+  passwordHash: string;
+  experiencePoints: number | undefined;
+  level: number | undefined;
+  avatarUrl: string | undefined;
+  createdAt: Date;
+  updatedAt: Date;
 }
-
-// In-memory storage for users (simulating database)
-class UserStorage {
-  private users: Map<string, IUser> = new Map(); // username -> user
-  private usersByUserId: Map<string, IUser> = new Map(); // userId -> user
-  private nextId: number = 1;
-
-  // Find user by username
-  findByUsername(username: string): IUser | null {
-    return this.users.get(username) || null;
-  }
-
-  // Find user by userId (for JWT validation)
-  findByUserId(userId: string): IUser | null {
-    return this.usersByUserId.get(userId) || null;
-  }
-
-  // Create new user with custom userId
-  create(username: string, passwordHash: string, customUserId: string): IUser {
-    const newUser: IUser = {
-      id: this.nextId++,
-      userId: customUserId,
-      username,
-      password_hash: passwordHash,
-    };
-
-    this.users.set(username, newUser);
-    this.usersByUserId.set(newUser.userId, newUser);
-
-    return newUser;
-  }
-
-  // Check if username exists
-  usernameExists(username: string): boolean {
-    return this.users.has(username);
-  }
-
-  // Check if userId exists
-  userIdExists(userId: string): boolean {
-    return this.usersByUserId.has(userId);
-  }
-
-  // Get all users (for debugging)
-  getAllUsers(): IUser[] {
-    return Array.from(this.users.values());
-  }
-
-  // Clear storage (for testing)
-  clear(): void {
-    this.users.clear();
-    this.usersByUserId.clear();
-    this.nextId = 1;
-  }
-}
-
-// Singleton instance for in-memory storage
-const userStorage = new UserStorage();
 
 export class User {
-  public id: number;
-  public userId: string;
-  public username: string;
-  public password_hash: string;
-
-  constructor(data: IUser) {
-    this.id = data.id;
-    this.userId = data.userId;
-    this.username = data.username;
-    this.password_hash = data.password_hash;
+  static async userIdExists(userId: string): Promise<boolean> {
+    const authExists = await AuthData.userIdExists(userId);
+    return authExists;
   }
 
-  // Static methods for user operations
-  static findByUsername(username: string): User | null {
-    const userData = userStorage.findByUsername(username);
-    return userData ? new User(userData) : null;
-  }
+  static async findByUserId(userId: string): Promise<IUser | null> {
+    const [authData, userData] = await Promise.all([
+      AuthData.findByUserId(userId),
+      UserData.findByUserId(userId),
+    ]);
 
-  static findByUserId(userId: string): User | null {
-    const userData = userStorage.findByUserId(userId);
-    return userData ? new User(userData) : null;
-  }
+    if (!authData || !userData) {
+      return null;
+    }
 
-  static create(
-    username: string,
-    passwordHash: string,
-    customUserId: string
-  ): User {
-    const userData = userStorage.create(username, passwordHash, customUserId);
-    return new User(userData);
-  }
-
-  static usernameExists(username: string): boolean {
-    return userStorage.usernameExists(username);
-  }
-
-  static userIdExists(userId: string): boolean {
-    return userStorage.userIdExists(userId);
-  }
-
-  // Get user without sensitive information (for API responses)
-  toPublicObject() {
     return {
-      id: this.id,
-      userId: this.userId,
-      username: this.username,
+      uniqueID: authData.uniqueID,
+      userId: authData.userId,
+      username: userData.username,
+      passwordHash: authData.passwordHash,
+      experiencePoints: userData.experiencePoints,
+      level: userData.level,
+      avatarUrl: userData.avatarUrl,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
     };
   }
 
-  // For debugging/testing
-  static getAllUsers(): User[] {
-    return userStorage.getAllUsers().map(userData => new User(userData));
+  static async findByUniqueID(uniqueID: string): Promise<IUser | null> {
+    const [authData, userData] = await Promise.all([
+      AuthData.findByUniqueID(uniqueID),
+      UserData.findByUniqueID(uniqueID),
+    ]);
+
+    if (!authData || !userData) {
+      return null;
+    }
+
+    return {
+      uniqueID: authData.uniqueID,
+      userId: authData.userId,
+      username: userData.username,
+      passwordHash: authData.passwordHash,
+      experiencePoints: userData.experiencePoints,
+      level: userData.level,
+      avatarUrl: userData.avatarUrl,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
+    };
   }
 
-  static clearStorage(): void {
-    userStorage.clear();
+  static async createUser(
+    username: string,
+    passwordHash: string,
+    userId: string
+  ): Promise<IUser> {
+    const exists = await this.userIdExists(userId);
+    if (exists) {
+      throw new Error('UserId already exists');
+    }
+
+    const uniqueID = await UserData.generateUniqueID();
+
+    try {
+      const [authData, userData] = await Promise.all([
+        AuthData.createAuthData(uniqueID, userId, passwordHash),
+        UserData.createUserData(uniqueID, username, userId),
+      ]);
+
+      return {
+        uniqueID: authData.uniqueID,
+        userId: authData.userId,
+        username: userData.username,
+        passwordHash: authData.passwordHash,
+        experiencePoints: userData.experiencePoints,
+        level: userData.level,
+        avatarUrl: userData.avatarUrl,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
+      };
+    } catch (error: any) {
+      await Promise.all([
+        AuthData.deleteOne({ uniqueID }).catch(() => {}),
+        UserData.deleteOne({ uniqueID }).catch(() => {}),
+      ]);
+      throw error;
+    }
+  }
+
+  static async generateUniqueID(): Promise<string> {
+    return UserData.generateUniqueID();
+  }
+
+  static async deleteMany(filter: any = {}): Promise<void> {
+    await Promise.all([
+      AuthData.deleteMany(filter),
+      UserData.deleteMany(filter),
+    ]);
   }
 }

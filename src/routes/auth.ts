@@ -1,44 +1,13 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import {
-  register,
+  getProfile,
   login,
   logout,
-  getProfile,
+  register,
   userIdExists,
 } from '../controllers/authController';
 
 const router = Router();
-
-// Rate limiting specifically for auth endpoints (disabled in test environment)
-
-/**
- * @swagger
- * /api/auth/test:
- *   get:
- *     summary: Test authentication service
- *     description: Check if the authentication service is running properly
- *     tags: [Authentication]
- *     responses:
- *       200:
- *         description: Authentication service is working
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TestResponse'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/InternalServerError'
- */
-router.get('/test', (_req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: 'Authentication service is working!',
-    timestamp: new Date().toISOString(),
-  });
-});
 
 /**
  * @swagger
@@ -216,6 +185,50 @@ router.post('/login', login);
 
 /**
  * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     description: Invalidate the user's session and remove the JWT token. (Not Implemented)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Logout successful"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
+ *       501:
+ *         description: Not implemented
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotImplementedError'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/InternalServerError'
+ */
+router.post('/logout', logout);
+
+/**
+ * @swagger
  * /api/auth/profile:
  *   get:
  *     summary: Get user profile (Not Implemented)
@@ -263,39 +276,18 @@ router.get('/profile', getProfile);
 
 /**
  * @swagger
- * /api/auth/logout:
- *   post:
- *     summary: Logout user
- *     description: Invalidate the user's session and remove the JWT token. (Not Implemented)
+ * /api/auth/test:
+ *   get:
+ *     summary: Test authentication service
+ *     description: Check if the authentication service is running properly
  *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Logout successful
+ *         description: Authentication service is working
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Logout successful"
- *       401:
- *         description: Unauthorized - Invalid or missing token
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/UnauthorizedError'
- *       501:
- *         description: Not implemented
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/NotImplementedError'
+ *               $ref: '#/components/schemas/TestResponse'
  *       500:
  *         description: Internal server error
  *         content:
@@ -303,6 +295,12 @@ router.get('/profile', getProfile);
  *             schema:
  *               $ref: '#/components/schemas/InternalServerError'
  */
-router.post('/logout', logout);
+router.get('/test', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Authentication service is working!',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 export = router;

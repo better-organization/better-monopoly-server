@@ -1,155 +1,250 @@
 import { User } from '../src/models/User';
+import { AuthData } from '../src/models/AuthData';
+import { UserData } from '../src/models/UserData';
 
-describe('User Model', () => {
-  beforeEach(() => {
-    User.clearStorage();
+describe('User Model - MongoDB with Separate Collections', () => {
+  // Cleanup: Clear database after each test
+  afterEach(async () => {
+    await User.deleteMany({});
   });
 
   describe('User Creation', () => {
-    it('should create a new user with custom userId', () => {
-      const user = User.create('testuser', 'hashedpassword', 'custom-user-id');
-      
+    it('should create a new user with auto-generated uniqueID', async () => {
+      const user = await User.createUser(
+        'testuser',
+        'hashedpassword',
+        'custom-user-id'
+      );
+
       expect(user.username).toBe('testuser');
-      expect(user.password_hash).toBe('hashedpassword');
+      expect(user.passwordHash).toBe('hashedpassword');
       expect(user.userId).toBe('custom-user-id');
-      expect(user.id).toBe(1); // First user gets ID 1
+      expect(user.uniqueID).toBeDefined();
+      expect(user.uniqueID).toMatch(/^[A-Z0-9]{10}$/);
+      expect(user.createdAt).toBeDefined();
+      expect(user.updatedAt).toBeDefined();
     });
 
-    it('should auto-increment user IDs', () => {
-      const user1 = User.create('user1', 'hash1', 'userId1');
-      const user2 = User.create('user2', 'hash2', 'userId2');
-      
-      expect(user1.id).toBe(1);
-      expect(user2.id).toBe(2);
-    });
-  });
+    it('should generate unique uniqueIDs for multiple users', async () => {
+      const user1 = await User.createUser('user1', 'hash1', 'userId1');
+      const user2 = await User.createUser('user2', 'hash2', 'userId2');
 
-  describe('Username Existence Check', () => {
-    it('should return false for non-existent username', () => {
-      expect(User.usernameExists('nonexistent')).toBe(false);
+      expect(user1.uniqueID).not.toBe(user2.uniqueID);
+      expect(user1.uniqueID).toMatch(/^[A-Z0-9]{10}$/);
+      expect(user2.uniqueID).toMatch(/^[A-Z0-9]{10}$/);
     });
 
-    it('should return true for existing username', () => {
-      User.create('testuser', 'hash', 'userId');
-      expect(User.usernameExists('testuser')).toBe(true);
+    it('should trim whitespace from username and userId', async () => {
+      const user = await User.createUser('  testuser  ', 'hash', '  userId  ');
+
+      expect(user.username).toBe('testuser');
+      expect(user.userId).toBe('userId');
     });
 
-    it('should be case sensitive', () => {
-      User.create('testuser', 'hash', 'userId');
-      expect(User.usernameExists('TestUser')).toBe(false);
+    it('should fail to create user with duplicate userId', async () => {
+      await User.createUser('user1', 'hash1', 'duplicate-id');
+
+      await expect(
+        User.createUser('user2', 'hash2', 'duplicate-id')
+      ).rejects.toThrow();
+    });
+
+    it('should fail to create user with userId less than 3 characters', async () => {
+      await expect(User.createUser('user', 'hash', 'ab')).rejects.toThrow();
+    });
+
+    it('should fail to create user with userId more than 50 characters', async () => {
+      const longUserId = 'a'.repeat(51);
+      await expect(
+        User.createUser('user', 'hash', longUserId)
+      ).rejects.toThrow();
+    });
+
+    it('should fail to create user with username less than 3 characters', async () => {
+      await expect(User.createUser('ab', 'hash', 'userId')).rejects.toThrow();
+    });
+
+    it('should fail to create user with username more than 30 characters', async () => {
+      const longUsername = 'a'.repeat(31);
+      await expect(
+        User.createUser(longUsername, 'hash', 'userId')
+      ).rejects.toThrow();
     });
   });
 
   describe('UserId Existence Check', () => {
-    it('should return false for non-existent userId', () => {
-      expect(User.userIdExists('nonexistent')).toBe(false);
+    it('should return false for non-existent userId', async () => {
+      const exists = await User.userIdExists('nonexistent');
+      expect(exists).toBe(false);
     });
 
-    it('should return true for existing userId', () => {
-      User.create('testuser', 'hash', 'test-user-id');
-      expect(User.userIdExists('test-user-id')).toBe(true);
+    it('should return true for existing userId', async () => {
+      await User.createUser('testuser', 'hash', 'test-user-id');
+      const exists = await User.userIdExists('test-user-id');
+      expect(exists).toBe(true);
     });
   });
 
   describe('User Lookup', () => {
-    beforeEach(() => {
-      User.create('testuser', 'hashedpass', 'test-user-id');
-    });
+    it('should find user by userId', async () => {
+      await User.createUser('testuser', 'hashedpass', 'test-user-id');
+      const user = await User.findByUserId('test-user-id');
 
-    it('should find user by username', () => {
-      const user = User.findByUsername('testuser');
       expect(user).toBeTruthy();
       expect(user?.username).toBe('testuser');
       expect(user?.userId).toBe('test-user-id');
+      expect(user?.passwordHash).toBe('hashedpass');
     });
 
-    it('should find user by userId', () => {
-      const user = User.findByUserId('test-user-id');
+    it('should find user by uniqueID', async () => {
+      const createdUser = await User.createUser(
+        'testuser',
+        'hashedpass',
+        'test-user-id'
+      );
+      const user = await User.findByUniqueID(createdUser.uniqueID);
+
       expect(user).toBeTruthy();
       expect(user?.username).toBe('testuser');
       expect(user?.userId).toBe('test-user-id');
+      expect(user?.uniqueID).toBe(createdUser.uniqueID);
     });
 
-    it('should return null for non-existent username', () => {
-      const user = User.findByUsername('nonexistent');
+    it('should return null for non-existent userId', async () => {
+      const user = await User.findByUserId('nonexistent');
       expect(user).toBeNull();
     });
 
-    it('should return null for non-existent userId', () => {
-      const user = User.findByUserId('nonexistent');
+    it('should return null for non-existent uniqueID', async () => {
+      const user = await User.findByUniqueID('NONEXIST99');
       expect(user).toBeNull();
     });
   });
 
   describe('Public Object Method', () => {
-    it('should return user data without password hash', () => {
-      const user = User.create('testuser', 'hashedpass', 'test-user-id');
-      const publicData = user.toPublicObject();
-      
+    it('should return user data without password hash from UserData', async () => {
+      const user = await User.createUser(
+        'testuser',
+        'hashedpass',
+        'test-user-id'
+      );
+
+      // Get userData from UserData model
+      const userData = await UserData.findByUniqueID(user.uniqueID);
+      const publicData = userData?.toPublicObject();
+
       expect(publicData).toEqual({
-        id: 1,
+        uniqueID: user.uniqueID,
         userId: 'test-user-id',
-        username: 'testuser'
+        username: 'testuser',
+        experiencePoints: 0,
+        level: 1,
+        avatarUrl: undefined,
+        createdAt: userData?.createdAt,
+        updatedAt: userData?.updatedAt,
       });
-      
+
+      expect(publicData).not.toHaveProperty('passwordHash');
       expect(publicData).not.toHaveProperty('password_hash');
+      expect(publicData).not.toHaveProperty('_id');
     });
   });
 
-  describe('Storage Management', () => {
-    it('should return all users', () => {
-      User.create('user1', 'hash1', 'userId1');
-      User.create('user2', 'hash2', 'userId2');
-      
-      const allUsers = User.getAllUsers();
-      expect(allUsers).toHaveLength(2);
-      expect(allUsers[0]!.username).toBe('user1');
-      expect(allUsers[1]!.username).toBe('user2');
+  describe('uniqueID Generation', () => {
+    it('should generate uniqueID with correct format', async () => {
+      const uniqueID = await User.generateUniqueID();
+      expect(uniqueID).toMatch(/^[A-Z0-9]{10}$/);
+      expect(uniqueID.length).toBe(10);
     });
 
-    it('should clear storage completely', () => {
-      User.create('user1', 'hash1', 'userId1');
-      User.create('user2', 'hash2', 'userId2');
-      
-      expect(User.getAllUsers()).toHaveLength(2);
-      
-      User.clearStorage();
-      
-      expect(User.getAllUsers()).toHaveLength(0);
-      expect(User.usernameExists('user1')).toBe(false);
-      expect(User.userIdExists('userId1')).toBe(false);
-    });
+    it('should generate different uniqueIDs', async () => {
+      const id1 = await User.generateUniqueID();
+      const id2 = await User.generateUniqueID();
+      const id3 = await User.generateUniqueID();
 
-    it('should reset ID counter after clearing', () => {
-      User.create('user1', 'hash1', 'userId1');
-      const allUsers = User.getAllUsers();
-      expect(allUsers[0]!.id).toBe(1);
-      
-      User.clearStorage();
-      
-      const newUser = User.create('user2', 'hash2', 'userId2');
-      expect(newUser.id).toBe(1); // ID should reset to 1
+      expect(id1).not.toBe(id2);
+      expect(id2).not.toBe(id3);
+      expect(id1).not.toBe(id3);
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle empty storage gracefully', () => {
-      expect(User.getAllUsers()).toHaveLength(0);
-      expect(User.findByUsername('anyone')).toBeNull();
-      expect(User.findByUserId('anyone')).toBeNull();
-      expect(User.usernameExists('anyone')).toBe(false);
-      expect(User.userIdExists('anyone')).toBe(false);
+  describe('Mongoose Validation', () => {
+    it('should enforce required fields in AuthData', async () => {
+      const authData = new AuthData({});
+      await expect(authData.save()).rejects.toThrow();
     });
 
-    it('should handle multiple users with same username pattern', () => {
-      User.create('user', 'hash1', 'userId1');
-      User.create('user1', 'hash2', 'userId2');
-      User.create('user2', 'hash3', 'userId3');
-      
-      expect(User.usernameExists('user')).toBe(true);
-      expect(User.usernameExists('user1')).toBe(true);
-      expect(User.usernameExists('user2')).toBe(true);
-      expect(User.usernameExists('user3')).toBe(false);
+    it('should enforce required fields in UserData', async () => {
+      const userData = new UserData({});
+      await expect(userData.save()).rejects.toThrow();
+    });
+
+    it('should enforce uniqueID format', async () => {
+      const authData = new AuthData({
+        uniqueID: 'invalid',
+        userId: 'testId',
+        passwordHash: 'hash',
+      });
+      await expect(authData.save()).rejects.toThrow();
+    });
+  });
+
+  describe('Timestamps', () => {
+    it('should automatically set createdAt and updatedAt', async () => {
+      const user = await User.createUser('testuser', 'hash', 'userId');
+
+      expect(user.createdAt).toBeInstanceOf(Date);
+      expect(user.updatedAt).toBeInstanceOf(Date);
+      expect(user.createdAt.getTime()).toBeLessThanOrEqual(
+        user.updatedAt.getTime()
+      );
+    });
+  });
+
+  describe('Separate Collections Architecture', () => {
+    it('should store credentials in auth_data collection', async () => {
+      const user = await User.createUser('testuser', 'hashedpass', 'userId123');
+
+      // Check auth_data collection
+      const authData = await AuthData.findByUniqueID(user.uniqueID);
+      expect(authData).toBeTruthy();
+      expect(authData?.uniqueID).toBe(user.uniqueID);
+      expect(authData?.userId).toBe('userId123');
+      expect(authData?.passwordHash).toBe('hashedpass');
+    });
+
+    it('should store user info in user_data collection without password', async () => {
+      const user = await User.createUser('testuser', 'hashedpass', 'userId123');
+
+      // Check user_data collection
+      const userData = await UserData.findByUniqueID(user.uniqueID);
+      expect(userData).toBeTruthy();
+      expect(userData?.uniqueID).toBe(user.uniqueID);
+      expect(userData?.userId).toBe('userId123');
+      expect(userData?.username).toBe('testuser');
+      expect(userData).not.toHaveProperty('passwordHash');
+    });
+
+    it('should link both collections with same uniqueID', async () => {
+      const user = await User.createUser('testuser', 'hashedpass', 'userId123');
+
+      const [authData, userData] = await Promise.all([
+        AuthData.findByUniqueID(user.uniqueID),
+        UserData.findByUniqueID(user.uniqueID),
+      ]);
+
+      expect(authData?.uniqueID).toBe(userData?.uniqueID);
+      expect(authData?.userId).toBe(userData?.userId);
+    });
+
+    it('should retrieve combined user data correctly', async () => {
+      await User.createUser('testuser', 'hashedpass', 'userId123');
+
+      const user = await User.findByUserId('userId123');
+      expect(user).toBeTruthy();
+      expect(user?.username).toBe('testuser');
+      expect(user?.passwordHash).toBe('hashedpass');
+      expect(user?.uniqueID).toBeDefined();
     });
   });
 });

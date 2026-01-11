@@ -11,6 +11,7 @@ import { ERROR_MESSAGES } from '../utils/errorMessages';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
+const SALT_ROUNDS = 12;
 
 // Service interfaces
 export interface AuthServiceResponse<
@@ -63,7 +64,7 @@ export class AuthService {
       validateUserIdOnly(userId);
 
       const trimmedUserId = userId.trim();
-      const exists = User.userIdExists(trimmedUserId);
+      const exists = await User.userIdExists(trimmedUserId);
 
       if (exists) {
         return {
@@ -82,14 +83,11 @@ export class AuthService {
         error:
           error instanceof Error
             ? error?.message
-            : 'An error occurred during login',
+            : 'An error occurred during validation',
       };
     }
   }
 
-  /**
-   * Register a new user
-   */
   static async registerUser(
     data: RegisterData
   ): Promise<AuthServiceResponse<RegisterResponseData>> {
@@ -101,20 +99,16 @@ export class AuthService {
       const trimmedUsername = username.trim();
       const trimmedUserId = userId.trim();
 
-      // Check if userId already exists
-      if (User.userIdExists(trimmedUserId)) {
+      if (await User.userIdExists(trimmedUserId)) {
         return {
           success: false,
           error: ERROR_MESSAGES.USERID_ALREADY_EXISTS,
         };
       }
 
-      // Hash password
-      const saltRounds = 12;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
+      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-      // Create new user
-      User.create(trimmedUsername, passwordHash, trimmedUserId);
+      await User.createUser(trimmedUsername, passwordHash, trimmedUserId);
 
       return {
         success: true,
@@ -128,7 +122,7 @@ export class AuthService {
         error:
           error instanceof Error
             ? error?.message
-            : 'An error occurred during login',
+            : 'An error occurred during registration',
       };
     }
   }
@@ -145,7 +139,7 @@ export class AuthService {
       validateLogin(userId, password);
 
       // Check if user exists
-      const user = User.findByUserId(userId);
+      const user = await User.findByUserId(userId);
       if (!user) {
         return {
           success: false,
@@ -154,10 +148,7 @@ export class AuthService {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(
-        password,
-        user.password_hash
-      );
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid) {
         return {
           success: false,
