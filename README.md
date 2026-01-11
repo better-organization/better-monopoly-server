@@ -19,6 +19,11 @@ Backend server for the Better Monopoly game. Built with Express, TypeScript, and
 - Yarn >= 1.22
 - Docker (for containerization)
 
+### Environment variables
+Copy `.env.example` to `.env` (and `.env.test` if you keep a separate test config) and update the following values:
+- `MONGO_URI` – the MongoDB connection string. Use your Atlas URI or `mongodb://localhost:27017/<database>` for local development. The server now attempts to connect at startup when this value is set.
+- `JWT_SECRET`, `PORT`, `FRONTEND_URL` – continue to tune these per your deployment.
+
 ### Install dependencies
 ```bash
 yarn install

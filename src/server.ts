@@ -11,26 +11,14 @@ import { notFoundHandler } from './middleware/notFoundHandler';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import gameRoutes from './routes/game';
+import connectDB from './config/db';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env['PORT'] || 8080;
 
-// Security middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'validator.swagger.io'],
-      },
-    },
-  })
-);
+app.use(helmet());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -74,8 +62,9 @@ app.use(notFoundHandler);
 // Error handling middleware
 app.use(errorHandler);
 
-// Start server only if not in test mode
-if (require.main === module) {
+const startServer = async () => {
+  await connectDB();
+
   const server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`📱 Environment: ${process.env['NODE_ENV'] || 'development'}`);
@@ -98,6 +87,13 @@ if (require.main === module) {
     server.close(() => {
       console.log('HTTP server closed');
     });
+  });
+};
+
+if (require.main === module) {
+  startServer().catch(error => {
+    console.error('Failed to start server', error);
+    process.exit(1);
   });
 }
 

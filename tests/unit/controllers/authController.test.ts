@@ -3,9 +3,9 @@ import app from '../../../src/server';
 import { User } from '../../../src/models/User';
 
 describe('Auth Controller', () => {
-  // Clear storage before each test
-  beforeEach(() => {
-    User.clearStorage();
+  // Clear database before each test
+  beforeEach(async () => {
+    await User.deleteMany({});
   });
 
   describe('POST /api/auth/userIdExists', () => {
@@ -186,12 +186,12 @@ describe('Auth Controller', () => {
       expect(response.status).toBe(201);
 
       // Check that the user was created and password was hashed
-      const allUsers = User.getAllUsers();
-      expect(allUsers).toHaveLength(1);
-      expect(allUsers[0]!.username).toBe('testuser');
-      expect(allUsers[0]!.userId).toBe('test-user-123');
-      expect(allUsers[0]!.password_hash).not.toBe('testpass123'); // Password should be hashed
-      expect(allUsers[0]!.password_hash).toMatch(/^\$2[aby]\$\d+\$/); // bcrypt hash format
+      const user = await User.findByUserId('test-user-123');
+      expect(user).toBeTruthy();
+      expect(user?.username).toBe('testuser');
+      expect(user?.userId).toBe('test-user-123');
+      expect(user?.passwordHash).not.toBe('testpass123'); // Password should be hashed
+      expect(user?.passwordHash).toMatch(/^\$2[aby]\$\d+\$/); // bcrypt hash format
     });
 
     it('should trim username and userId', async () => {
@@ -203,9 +203,9 @@ describe('Auth Controller', () => {
 
       expect(response.status).toBe(201);
 
-      const allUsers = User.getAllUsers();
-      expect(allUsers[0]!.username).toBe('testuser'); // Trimmed
-      expect(allUsers[0]!.userId).toBe('test-user-123'); // Trimmed
+      const user = await User.findByUserId('test-user-123');
+      expect(user?.username).toBe('testuser'); // Trimmed
+      expect(user?.userId).toBe('test-user-123'); // Trimmed
     });
 
     it('should not return JWT token on registration', async () => {
@@ -246,7 +246,9 @@ describe('Auth Controller', () => {
       expect(response.body.username).toBeUndefined();
 
       // Check if Set-Cookie header exists
-      const setCookieHeader = response.headers['set-cookie'] as string[] | undefined;
+      const setCookieHeader = response.headers['set-cookie'] as
+        | string[]
+        | undefined;
       expect(setCookieHeader).toBeDefined();
       expect(Array.isArray(setCookieHeader)).toBe(true);
 
@@ -287,7 +289,9 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toBe('Both userId and password are required');
+      expect(response.body.message).toBe(
+        'Both userId and password are required'
+      );
     });
 
     it('should return 400 when password is missing', async () => {
@@ -296,7 +300,9 @@ describe('Auth Controller', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toBe('Both userId and password are required');
+      expect(response.body.message).toBe(
+        'Both userId and password are required'
+      );
     });
 
     it('should return 401 for non-existent user', async () => {
