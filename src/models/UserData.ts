@@ -102,30 +102,37 @@ UserDataSchema.static('generateUniqueID', async function (): Promise<string> {
   return uniqueID!;
 });
 
-UserDataSchema.static('findByUniqueID', async function (
-  uniqueID: string
-): Promise<HydratedDocument<IUserData> | null> {
-  return this.findOne({ uniqueID });
-});
+UserDataSchema.static(
+  'findByUniqueID',
+  async function (
+    uniqueID: string
+  ): Promise<HydratedDocument<IUserData> | null> {
+    return this.findOne({ uniqueID });
+  }
+);
 
-UserDataSchema.static('findByUserId', async function (
-  userId: string
-): Promise<HydratedDocument<IUserData> | null> {
-  return this.findOne({ userId });
-});
+UserDataSchema.static(
+  'findByUserId',
+  async function (userId: string): Promise<HydratedDocument<IUserData> | null> {
+    return this.findOne({ userId });
+  }
+);
 
-UserDataSchema.static('createUserData', async function (
-  uniqueID: string,
-  username: string,
-  userId: string
-): Promise<HydratedDocument<IUserData>> {
-  const userData = new this({
-    uniqueID,
-    userId,
-    username,
-  });
-  return userData.save();
-});
+UserDataSchema.static(
+  'createUserData',
+  async function (
+    uniqueID: string,
+    username: string,
+    userId: string
+  ): Promise<HydratedDocument<IUserData>> {
+    const userData = new this({
+      uniqueID,
+      userId,
+      username,
+    });
+    return userData.save();
+  }
+);
 
 UserDataSchema.method('toPublicObject', function () {
   return {

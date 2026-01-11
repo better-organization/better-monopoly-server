@@ -55,37 +55,45 @@ const AuthDataSchema = new Schema<IAuthData, IAuthDataModel>(
   }
 );
 
-AuthDataSchema.static('findByUniqueID', async function (
-  uniqueID: string
-): Promise<HydratedDocument<IAuthData> | null> {
-  return this.findOne({ uniqueID });
-});
+AuthDataSchema.static(
+  'findByUniqueID',
+  async function (
+    uniqueID: string
+  ): Promise<HydratedDocument<IAuthData> | null> {
+    return this.findOne({ uniqueID });
+  }
+);
 
-AuthDataSchema.static('findByUserId', async function (
-  userId: string
-): Promise<HydratedDocument<IAuthData> | null> {
-  return this.findOne({ userId });
-});
+AuthDataSchema.static(
+  'findByUserId',
+  async function (userId: string): Promise<HydratedDocument<IAuthData> | null> {
+    return this.findOne({ userId });
+  }
+);
 
-AuthDataSchema.static('userIdExists', async function (
-  userId: string
-): Promise<boolean> {
-  const authData = await this.findOne({ userId }).select('_id');
-  return authData !== null;
-});
+AuthDataSchema.static(
+  'userIdExists',
+  async function (userId: string): Promise<boolean> {
+    const authData = await this.findOne({ userId }).select('_id');
+    return authData !== null;
+  }
+);
 
-AuthDataSchema.static('createAuthData', async function (
-  uniqueID: string,
-  userId: string,
-  passwordHash: string
-): Promise<HydratedDocument<IAuthData>> {
-  const authData = new this({
-    uniqueID,
-    userId,
-    passwordHash,
-  });
-  return authData.save();
-});
+AuthDataSchema.static(
+  'createAuthData',
+  async function (
+    uniqueID: string,
+    userId: string,
+    passwordHash: string
+  ): Promise<HydratedDocument<IAuthData>> {
+    const authData = new this({
+      uniqueID,
+      userId,
+      passwordHash,
+    });
+    return authData.save();
+  }
+);
 
 export const AuthData = mongoose.model<IAuthData, IAuthDataModel>(
   'AuthData',
