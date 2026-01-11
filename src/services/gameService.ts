@@ -1,6 +1,9 @@
 // Game Service
 // TODO: Implement Monopoly game logic
 
+import { DiceRollResult } from '../types/game';
+import { ITimeService, timeService } from './timeService';
+
 export interface Player {
   id: string;
   name: string;
@@ -63,12 +66,22 @@ export class GameService {
     return {} as Game;
   }
 
-  // TODO: Implement dice rolling
-  static rollDice(): [number, number] {
-    return [
+  // Dice rolling with structured result
+  static rollDice(
+    timeServiceInstance: ITimeService = timeService
+  ): DiceRollResult {
+    const dice: [number, number] = [
       Math.floor(Math.random() * 6) + 1,
       Math.floor(Math.random() * 6) + 1,
     ];
+    const total = dice[0] + dice[1];
+    const timestamp = timeServiceInstance.now();
+
+    return {
+      dice,
+      total,
+      timestamp,
+    };
   }
 
   // TODO: Implement board initialization

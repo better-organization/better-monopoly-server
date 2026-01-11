@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { BoardController } from '../controllers/boardController';
+import { GameController } from '../controllers/gameController';
 
 const router = Router();
 
@@ -35,6 +36,76 @@ router.get('/test', (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+/**
+ * @swagger
+ * /api/game/roll-dice:
+ *   post:
+ *     summary: Roll dice
+ *     description: Roll two dice and return the result. Optionally accepts gameId and playerId for future game state integration.
+ *     tags: [Game]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               gameId:
+ *                 type: string
+ *                 description: Optional game identifier
+ *                 example: "game-123"
+ *               playerId:
+ *                 type: string
+ *                 description: Optional player identifier
+ *                 example: "player-456"
+ *     responses:
+ *       200:
+ *         description: Dice rolled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     dice:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                         minimum: 1
+ *                         maximum: 6
+ *                       minItems: 2
+ *                       maxItems: 2
+ *                       example: [3, 5]
+ *                     total:
+ *                       type: integer
+ *                       minimum: 2
+ *                       maximum: 12
+ *                       example: 8
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-01-11T13:34:17.000Z"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while rolling dice"
+ */
+router.post('/roll-dice', GameController.rollDice);
 
 /**
  * @swagger
