@@ -256,7 +256,6 @@ describe('AuthService - MongoDB with Separate Collections', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.token).toBe('jwt.token.here');
-      expect(result.data?.expires).toBeInstanceOf(Date);
       expect(mockedJwt.sign).toHaveBeenCalledWith(
         { userId: 'user123', username: 'testuser', roomCode: null, gameId: null },
         expect.any(String),

@@ -135,8 +135,7 @@ describe('Auth Routes - Integration with Separate Collections', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('token');
-      expect(response.body.data).toHaveProperty('expires');
+      expect(response.body.message).toBe('Login successful');
     });
 
     it('should reject login with invalid credentials', async () => {

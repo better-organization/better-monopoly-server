@@ -94,7 +94,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(statusCode).json({
       success: result.success,
       message: result.success ? 'Login successful' : result.error,
-      data: result.success ? result.data : undefined,
     });
   } catch (error) {
     console.error('Login error:', error);

@@ -30,7 +30,7 @@ describe('Room Routes', () => {
 
   beforeEach(() => {
     // Clear user storage before each test
-    User.clearStorage();
+    User.deleteMany();
     // Clear room storage before each test
     RoomService.getInstance().clearStorage();
   });
