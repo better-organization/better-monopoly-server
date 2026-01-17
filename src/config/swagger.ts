@@ -31,6 +31,12 @@ const options: swaggerJsdoc.Options = {
           bearerFormat: 'JWT',
           description: 'JWT token obtained from /api/auth/login endpoint',
         },
+        cookieAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'auth_token',
+          description: 'JWT token stored in auth_token cookie',
+        },
       },
       schemas: {
         // Request schemas
@@ -93,6 +99,18 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        CreateRoomRequest: {
+          type: 'object',
+          required: ['username'],
+          properties: {
+            username: {
+              type: 'string',
+              minLength: 3,
+              description: 'Username of the player creating the room',
+              example: 'player123',
+            },
+          },
+        },
 
         // Success response schemas
         RegisterResponse: {
@@ -147,6 +165,38 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               format: 'date-time',
               example: '2025-12-04T10:30:00.000Z',
+            },
+          },
+        },
+        CreateRoomResponse: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string',
+              example: 'Room created successfully',
+            },
+          },
+        },
+        RoomStatusResponse: {
+          type: 'object',
+          properties: {
+            roomId: {
+              type: 'string',
+              description: 'Unique room identifier',
+              example: '550e8400-e29b-41d4-a716-446655440000',
+            },
+            roomCode: {
+              type: 'string',
+              description: 'Human-readable room code for joining',
+              example: 'ABC123',
+            },
+            players: {
+              type: 'array',
+              description: 'List of player usernames in the room',
+              items: {
+                type: 'string',
+              },
+              example: ['player123', 'player456'],
             },
           },
         },
@@ -255,6 +305,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Game',
         description: 'Game logic and management endpoints',
+      },
+      {
+        name: 'Room',
+        description: 'Room creation and management endpoints',
       },
     ],
   },

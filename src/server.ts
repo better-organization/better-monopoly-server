@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -12,6 +13,7 @@ import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import gameRoutes from './routes/game';
 import connectDB from './config/db';
+import roomRoutes from './routes/room';
 
 dotenv.config();
 
@@ -27,6 +29,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Compression middleware
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(compression() as any);
+
+app.use(cookieParser());
 
 // CORS configuration
 app.use(
@@ -55,6 +59,7 @@ app.use(
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
+app.use('/api/room', roomRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

@@ -331,7 +331,7 @@ describe('Auth Controller', () => {
       const response = await request(app).get('/api/auth/profile');
 
       expect(response.status).toBe(501);
-      expect(response.body.error).toBe('Not Implemented');
+      expect(response.body.success).toBe(false);
       expect(response.body.message).toBe(
         'Profile endpoint will be implemented later'
       );
