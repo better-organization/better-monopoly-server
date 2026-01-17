@@ -1,4 +1,4 @@
-import { Token, tokenPayload } from '../../../src/models/Token';
+import { tokenUtil, ITokenPayload } from '../../../src/utils/TokenUtil';
 import jwt from 'jsonwebtoken';
 
 describe('Token Model', () => {
@@ -8,7 +8,7 @@ describe('Token Model', () => {
 
   describe('generateToken', () => {
     it('should generate a valid JWT token', () => {
-      const token = Token.generateToken(testUserId, testUsername);
+      const token = tokenUtil.generateToken(testUserId, testUsername);
 
       expect(token).toBeDefined();
       expect(typeof token).toBe('string');
@@ -16,8 +16,8 @@ describe('Token Model', () => {
     });
 
     it('should generate token with correct payload', () => {
-      const token = Token.generateToken(testUserId, testUsername);
-      const decoded = jwt.verify(token, JWT_SECRET) as tokenPayload;
+      const token = tokenUtil.generateToken(testUserId, testUsername);
+      const decoded = jwt.verify(token, JWT_SECRET) as ITokenPayload;
 
       expect(decoded.userId).toBe(testUserId);
       expect(decoded.username).toBe(testUsername);
@@ -26,13 +26,13 @@ describe('Token Model', () => {
     });
 
     it('should generate different tokens for different users', () => {
-      const token1 = Token.generateToken('user1', 'username1');
-      const token2 = Token.generateToken('user2', 'username2');
+      const token1 = tokenUtil.generateToken('user1', 'username1');
+      const token2 = tokenUtil.generateToken('user2', 'username2');
 
       expect(token1).not.toBe(token2);
 
-      const decoded1 = jwt.verify(token1, JWT_SECRET) as tokenPayload;
-      const decoded2 = jwt.verify(token2, JWT_SECRET) as tokenPayload;
+      const decoded1 = jwt.verify(token1, JWT_SECRET) as ITokenPayload;
+      const decoded2 = jwt.verify(token2, JWT_SECRET) as ITokenPayload;
 
       expect(decoded1.userId).toBe('user1');
       expect(decoded1.username).toBe('username1');
@@ -41,7 +41,7 @@ describe('Token Model', () => {
     });
 
     it('should include expiration in token', () => {
-      const token = Token.generateToken(testUserId, testUsername);
+      const token = tokenUtil.generateToken(testUserId, testUsername);
       const decoded = jwt.decode(token) as any;
 
       expect(decoded).toHaveProperty('exp');
@@ -52,11 +52,11 @@ describe('Token Model', () => {
 
   describe('updateRoomCode', () => {
     it('should update roomCode in existing token', () => {
-      const originalToken = Token.generateToken(testUserId, testUsername);
+      const originalToken = tokenUtil.generateToken(testUserId, testUsername);
       const newRoomCode = 'room-456';
 
-      const updatedToken = Token.updateRoomCode(originalToken, newRoomCode);
-      const decoded = jwt.verify(updatedToken, JWT_SECRET) as tokenPayload;
+      const updatedToken = tokenUtil.updateRoomCode(originalToken, newRoomCode);
+      const decoded = jwt.verify(updatedToken, JWT_SECRET) as ITokenPayload;
 
       expect(decoded.userId).toBe(testUserId);
       expect(decoded.username).toBe(testUsername);
@@ -65,10 +65,10 @@ describe('Token Model', () => {
     });
 
     it('should preserve userId and username when updating roomCode', () => {
-      const originalToken = Token.generateToken('original-user', 'originalName');
-      const updatedToken = Token.updateRoomCode(originalToken, 'new-room-code');
+      const originalToken = tokenUtil.generateToken('original-user', 'originalName');
+      const updatedToken = tokenUtil.updateRoomCode(originalToken, 'new-room-code');
 
-      const decoded = jwt.verify(updatedToken, JWT_SECRET) as tokenPayload;
+      const decoded = jwt.verify(updatedToken, JWT_SECRET) as ITokenPayload;
 
       expect(updatedToken).not.toBe(originalToken);
       expect(updatedToken.length).toBeGreaterThan(0);
@@ -82,15 +82,15 @@ describe('Token Model', () => {
       const invalidToken = 'invalid.token.here';
 
       expect(() => {
-        Token.updateRoomCode(invalidToken, 'room-code');
+        tokenUtil.updateRoomCode(invalidToken, 'room-code');
       }).toThrow();
     });
   });
 
   describe('verifyToken', () => {
     it('should verify and decode valid token', () => {
-      const token = Token.generateToken(testUserId, testUsername);
-      const payload = Token.verifyToken(token);
+      const token = tokenUtil.generateToken(testUserId, testUsername);
+      const payload = tokenUtil.verifyToken(token);
 
       expect(payload).toBeDefined();
       expect(payload.userId).toBe(testUserId);
@@ -103,7 +103,7 @@ describe('Token Model', () => {
       const invalidToken = 'invalid.token.string';
 
       expect(() => {
-        Token.verifyToken(invalidToken);
+        tokenUtil.verifyToken(invalidToken);
       }).toThrow();
     });
 
@@ -123,7 +123,7 @@ describe('Token Model', () => {
       // Wait a bit to ensure expiration
       setTimeout(() => {
         expect(() => {
-          Token.verifyToken(shortLivedToken);
+          tokenUtil.verifyToken(shortLivedToken);
         }).toThrow();
       }, 100);
     });

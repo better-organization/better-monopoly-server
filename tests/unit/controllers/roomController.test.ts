@@ -1,17 +1,17 @@
 import { Request, Response } from 'express';
 import { RoomController } from '../../../src/controllers/roomController';
 import { RoomService } from '../../../src/services/roomService';
-import { Token, tokenPayload } from '../../../src/models/Token';
+import { tokenUtil, ITokenPayload } from '../../../src/utils/TokenUtil';
 import { cookieUtil } from '../../../src/utils/cookieUtil';
 
 // Mock dependencies
 jest.mock('../../../src/services/roomService');
-jest.mock('../../../src/models/Token');
+jest.mock('../../../src/utils/TokenUtil');
 jest.mock('../../../src/utils/cookieUtil');
 
 // Extend Request type to include user
 interface AuthenticatedRequest extends Request {
-  user?: tokenPayload;
+  user?: ITokenPayload;
 }
 
 describe('RoomController', () => {
@@ -71,7 +71,7 @@ describe('RoomController', () => {
 
       mockRoomService.createRoom = jest.fn().mockReturnValue(mockRoomInfo);
       (cookieUtil.getCookie as jest.Mock).mockReturnValue('mock-token');
-      (Token.updateRoomCode as jest.Mock).mockReturnValue('updated-token');
+      (tokenUtil.updateRoomCode as jest.Mock).mockReturnValue('updated-token');
 
       roomController.createRoom(
         mockRequest as Request,
@@ -145,7 +145,7 @@ describe('RoomController', () => {
 
       mockRoomService.createRoom = jest.fn().mockReturnValue(mockRoomInfo);
       (cookieUtil.getCookie as jest.Mock).mockReturnValue('existing-token');
-      (Token.updateRoomCode as jest.Mock).mockReturnValue('updated-token');
+      (tokenUtil.updateRoomCode as jest.Mock).mockReturnValue('updated-token');
       (cookieUtil.setCookie as jest.Mock).mockImplementation(() => {});
 
       roomController.createRoom(
@@ -157,7 +157,7 @@ describe('RoomController', () => {
         mockRequest,
         'auth_token'
       );
-      expect(Token.updateRoomCode).toHaveBeenCalledWith(
+      expect(tokenUtil.updateRoomCode).toHaveBeenCalledWith(
         'existing-token',
         'ABC123'
       );
@@ -177,7 +177,7 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(Token.updateRoomCode).not.toHaveBeenCalled();
+      expect(tokenUtil.updateRoomCode).not.toHaveBeenCalled();
       expect(cookieUtil.setCookie).not.toHaveBeenCalled();
     });
   });

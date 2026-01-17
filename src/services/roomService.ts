@@ -1,4 +1,4 @@
-import { Room, roomInfo } from '../models/Room';
+import { Room, IRoomInfo } from '../models/Room';
 import { randomUUID } from 'node:crypto';
 
 export class RoomService {
@@ -40,7 +40,7 @@ export class RoomService {
     return code;
   }
 
-  createRoom(username: string): roomInfo {
+  createRoom(username: string): IRoomInfo {
     const roomId = randomUUID();
     const roomCode = this.generateRoomCode();
 
@@ -53,11 +53,11 @@ export class RoomService {
     return room.getRoomInfo();
   }
 
-  getRoomById(roomId: string): roomInfo | undefined {
+  getRoomById(roomId: string): IRoomInfo | undefined {
     return this.roomsById.get(roomId)?.getRoomInfo();
   }
 
-  getRoom(roomCode: string): roomInfo | undefined {
+  getRoom(roomCode: string): IRoomInfo | undefined {
     const roomId = this.roomsByCode.get(roomCode);
     if (roomId) {
       return this.getRoomById(roomId);

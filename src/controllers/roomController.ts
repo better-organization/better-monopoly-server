@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { RoomService } from '../services/roomService';
-import { Token } from '../models/Token';
+import { tokenUtil } from '../utils/TokenUtil';
 import { cookieUtil } from '../utils/cookieUtil';
 
 export class RoomController {
@@ -38,7 +38,7 @@ export class RoomController {
 
     const currentToken = cookieUtil.getCookie(req, 'auth_token');
     if (currentToken) {
-      const newToken = Token.updateRoomCode(currentToken, room.roomCode);
+      const newToken = tokenUtil.updateRoomCode(currentToken, room.roomCode);
       cookieUtil.setCookie(res, 'auth_token', newToken, 24);
     }
 

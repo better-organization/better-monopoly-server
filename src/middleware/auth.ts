@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Token, tokenPayload } from '../models/Token';
+import { tokenUtil, ITokenPayload } from '../utils/TokenUtil';
 import { cookieUtil } from '../utils/cookieUtil';
 
 // Extend Express Request to include user data
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: tokenPayload;
+    user?: ITokenPayload;
   }
 }
 
@@ -27,10 +27,12 @@ export const requireAuth = (
       return;
     }
 
-    req.user = Token.verifyToken(token);
+    req.user = tokenUtil.verifyToken(token);
 
     next();
   } catch (error) {
+    console.error("Authentication Middleware error:", error);
+
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
         error: 'Unauthorized',
@@ -64,7 +66,7 @@ export const optionalAuth = (
     const token = cookieUtil.getCookie(req, 'auth_token');
 
     if (token) {
-      req.user = Token.verifyToken(token);
+      req.user = tokenUtil.verifyToken(token);
     }
 
     next();

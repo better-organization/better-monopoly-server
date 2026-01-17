@@ -12,7 +12,8 @@ export class BoardController {
         return res.status(404).json({ error: 'BOARD_NOT_FOUND' });
       }
       return res.json(result);
-    } catch {
+    } catch (error) {
+      console.error("Get board layout error: ", error);
       return res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
     }
   }

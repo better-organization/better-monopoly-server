@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken';
 
-export interface tokenPayload {
+export interface ITokenPayload {
   userId: string;
   username: string;
   roomCode: string | null;
   gameId: string | null;
 }
 
-export class Token {
+export class tokenUtil {
   private static parse(userId: string, username: string) {
     return { userId, username, gameId: null, roomCode: null };
   }
@@ -16,7 +16,7 @@ export class Token {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
     const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
-    return jwt.sign(Token.parse(userId, username), JWT_SECRET, {
+    return jwt.sign(tokenUtil.parse(userId, username), JWT_SECRET, {
       expiresIn: JWT_EXPIRE,
     } as jwt.SignOptions);
   };
@@ -24,7 +24,7 @@ export class Token {
   static updateRoomCode = (token: string, roomId: string): string => {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
-    const decoded = jwt.verify(token, JWT_SECRET) as tokenPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as ITokenPayload;
     const newPayload = {
       userId: decoded.userId,
       username: decoded.username,
@@ -36,9 +36,9 @@ export class Token {
     } as jwt.SignOptions);
   };
 
-  static verifyToken = (token: string): tokenPayload => {
+  static verifyToken = (token: string): ITokenPayload => {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
-    return jwt.verify(token, JWT_SECRET) as tokenPayload;
+    return jwt.verify(token, JWT_SECRET) as ITokenPayload;
   };
 }

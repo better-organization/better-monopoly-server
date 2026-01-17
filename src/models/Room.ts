@@ -1,4 +1,4 @@
-export interface roomInfo {
+export interface IRoomInfo {
   roomId: string;
   roomCode: string;
   players: string[];
@@ -23,7 +23,7 @@ export class Room {
     return Array.from(this.players);
   }
 
-  getRoomInfo(): roomInfo {
+  getRoomInfo(): IRoomInfo {
     return {
       roomId: this.roomId,
       roomCode: this.roomCode,

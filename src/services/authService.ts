@@ -8,7 +8,7 @@ import {
 } from '../utils/validation';
 import { ERROR_MESSAGES } from '../utils/errorMessages';
 import * as dotenv from 'dotenv';
-import { Token } from '../models/Token';
+import { tokenUtil } from '../utils/TokenUtil';
 
 dotenv.config();
 const SALT_ROUNDS = 12;
@@ -145,7 +145,7 @@ export class AuthService {
         };
       }
 
-      const token = Token.generateToken(user.userId, user.username);
+      const token = tokenUtil.generateToken(user.userId, user.username);
 
       return {
         success: true,
