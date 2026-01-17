@@ -21,7 +21,7 @@ export const requireAuth = (
 
     if (!token) {
       res.status(401).json({
-        error: 'Unauthorized',
+        success: false,
         message: 'Authentication token is required',
       });
       return;
@@ -35,7 +35,7 @@ export const requireAuth = (
 
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
-        error: 'Unauthorized',
+        success: false,
         message: 'Token has expired',
       });
       return;
@@ -43,14 +43,14 @@ export const requireAuth = (
 
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({
-        error: 'Unauthorized',
+        success: false,
         message: 'Invalid token',
       });
       return;
     }
 
     res.status(500).json({
-      error: 'Internal Server Error',
+      success: false,
       message: 'Error verifying authentication token',
     });
   }

@@ -15,8 +15,10 @@ export class Room {
     this.players = new Set<string>();
   }
 
-  addPlayer(username: string): void {
+  addPlayer(username: string): boolean {
+    const currentSize = this.players.size;
     this.players.add(username);
+    return currentSize + 1 === this.players.size;
   }
 
   private getPlayers(): string[] {

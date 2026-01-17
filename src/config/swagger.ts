@@ -111,6 +111,20 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        JoinRoomRequest: {
+          type: 'object',
+          required: ['roomCode'],
+          properties: {
+            roomCode: {
+              type: 'string',
+              minLength: 6,
+              maxLength: 6,
+              pattern: '^[0-9]{6}$',
+              description: 'Six-digit room code to join',
+              example: '123456',
+            },
+          },
+        },
 
         // Success response schemas
         RegisterResponse: {
@@ -197,6 +211,21 @@ const options: swaggerJsdoc.Options = {
                 type: 'string',
               },
               example: ['player123', 'player456'],
+            },
+          },
+        },
+        JoinRoomResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              description: 'Whether the join operation was successful',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              description: 'Result message',
+              example: 'Joined room successfully',
             },
           },
         },

@@ -28,9 +28,9 @@ describe('Room Routes', () => {
     return getCookies(loginResponse.headers);
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear user storage before each test
-    User.deleteMany();
+    await User.deleteMany();
     // Clear room storage before each test
     RoomService.getInstance().clearStorage();
   });
@@ -212,6 +212,214 @@ describe('Room Routes', () => {
     });
   });
 
+  describe('POST /api/room/join', () => {
+    it('should allow a user to join an existing room successfully', async () => {
+      // Create a room with user1
+      const cookies1 = await registerAndLogin('user1', 'user1id');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookies1)
+        .send();
+
+      expect(createResponse.status).toBe(201);
+      const roomCode = createResponse.body.roomCode;
+
+      // Register and login user2
+      const cookies2 = await registerAndLogin('user2', 'user2id');
+
+      // User2 joins the room by sending roomCode in body
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookies2)
+        .send({ roomCode });
+
+      expect(joinResponse.status).toBe(200);
+      expect(joinResponse.body).toHaveProperty('success', true);
+      expect(joinResponse.body).toHaveProperty('message', 'Joined room successfully');
+    });
+
+    it('should add the joining user to the room player list', async () => {
+      // Create a room with user1
+      const cookies1 = await registerAndLogin('creator', 'creatorid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookies1)
+        .send();
+
+      const roomCode = createResponse.body.roomCode;
+      const creatorCookiesUpdated = getCookies(createResponse.headers);
+
+      // Register and login joiner
+      const cookiesJoiner = await registerAndLogin('joiner', 'joinerid');
+
+      // Joiner joins the room
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesJoiner)
+        .send({ roomCode });
+
+      expect(joinResponse.status).toBe(200);
+
+      // Check room status from creator's perspective
+      const statusResponse = await request(app)
+        .get('/api/room/status')
+        .set('Cookie', creatorCookiesUpdated)
+        .send();
+
+      expect(statusResponse.status).toBe(200);
+      expect(statusResponse.body.players).toContain('creator');
+      expect(statusResponse.body.players).toContain('joiner');
+      expect(statusResponse.body.players.length).toBe(2);
+    });
+
+    it('should update the joiner\'s auth token with roomCode', async () => {
+      // Create a room
+      const cookiesCreator = await registerAndLogin('creator', 'creatorid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesCreator)
+        .send();
+
+      const roomCode = createResponse.body.roomCode;
+
+      // Register joiner
+      const cookiesJoiner = await registerAndLogin('joiner', 'joinerid');
+
+      // Join the room
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesJoiner)
+        .send({ roomCode });
+
+      expect(joinResponse.status).toBe(200);
+      expect(joinResponse.headers['set-cookie']).toBeDefined();
+
+      // Use updated cookie to check room status
+      const updatedCookies = getCookies(joinResponse.headers);
+      const statusResponse = await request(app)
+        .get('/api/room/status')
+        .set('Cookie', updatedCookies)
+        .send();
+
+      expect(statusResponse.status).toBe(200);
+      expect(statusResponse.body.roomCode).toBe(roomCode);
+      expect(statusResponse.body.players).toContain('joiner');
+    });
+
+    it('should return 401 when not authenticated', async () => {
+      const response = await request(app)
+        .post('/api/room/join')
+        .send({ roomCode: '123456' });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 400 when roomCode is not provided in body', async () => {
+      const cookies = await registerAndLogin('testUser', 'testuser123');
+
+      // Try to join without roomCode in body
+      const response = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookies)
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('roomCode not found in request');
+    });
+
+    it('should return 400 when trying to join non-existent room', async () => {
+      const cookies = await registerAndLogin('testUser', 'testuser123');
+
+      const response = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookies)
+        .send({ roomCode: '999999' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Failed to join room');
+    });
+
+    it('should allow multiple users to join the same room', async () => {
+      // Create a room with host
+      const cookiesHost = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesHost)
+        .send();
+
+      const roomCode = createResponse.body.roomCode;
+      const hostCookiesUpdated = getCookies(createResponse.headers);
+
+      // Register players
+      const cookiesPlayer1 = await registerAndLogin('player1', 'player1id');
+      const cookiesPlayer2 = await registerAndLogin('player2', 'player2id');
+      const cookiesPlayer3 = await registerAndLogin('player3', 'player3id');
+
+      // Players join
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer1)
+        .send({ roomCode });
+
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer2)
+        .send({ roomCode });
+
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer3)
+        .send({ roomCode });
+
+      // Check room status
+      const statusResponse = await request(app)
+        .get('/api/room/status')
+        .set('Cookie', hostCookiesUpdated)
+        .send();
+
+      expect(statusResponse.status).toBe(200);
+      expect(statusResponse.body.players).toContain('host');
+      expect(statusResponse.body.players).toContain('player1');
+      expect(statusResponse.body.players).toContain('player2');
+      expect(statusResponse.body.players).toContain('player3');
+      expect(statusResponse.body.players.length).toBe(4);
+    });
+
+    it('should return success false when trying to join same room twice', async () => {
+      // Create a room with user1
+      const cookies1 = await registerAndLogin('user1', 'user1id');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookies1)
+        .send();
+
+      const roomCode = createResponse.body.roomCode;
+      const updatedCookies1 = getCookies(createResponse.headers);
+
+      // User1 tries to join their own room again
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', updatedCookies1)
+        .send({ roomCode });
+
+      // Should return success false since user is already in the room
+      expect(joinResponse.status).toBe(400);
+      expect(joinResponse.body).toHaveProperty('success', false);
+    });
+
+    it('should return 400 with invalid roomCode format', async () => {
+      const cookies = await registerAndLogin('testUser', 'testuser123');
+
+      const response = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookies)
+        .send({ roomCode: 'invalid' });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
   describe('Room workflow', () => {
     it('should support complete create and status workflow', async () => {
       const cookies = await registerAndLogin('fullWorkflowUser', 'workflow123');
@@ -294,8 +502,13 @@ describe('Room Routes', () => {
         .get('/api/room/status')
         .send();
 
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .send();
+
       expect(createResponse.status).toBe(401);
       expect(statusResponse.status).toBe(401);
+      expect(joinResponse.status).toBe(401);
     });
   });
 });

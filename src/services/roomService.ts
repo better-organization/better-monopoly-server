@@ -65,4 +65,14 @@ export class RoomService {
 
     return;
   }
+
+  joinRoom(roomCode: string, username: string) {
+    const roomId = this.roomsByCode.get(roomCode);
+    if (roomId) {
+      const room = this.roomsById.get(roomId);
+      return room?.addPlayer(username);
+    }
+
+    return false;
+  }
 }

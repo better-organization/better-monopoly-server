@@ -113,5 +113,56 @@ describe('RoomService', () => {
       expect(retrieved3?.players).toEqual(['user3']);
     });
   });
+
+  describe('joinRoom', ()=> {
+    it('should allow a user to join an existing room', () => {
+      const creator = 'creatorUser';
+      const joiner = 'joinerUser';
+      const roomInfo = roomService.createRoom(creator);
+
+      const joinResult = roomService.joinRoom(roomInfo.roomCode, joiner);
+      const updatedRoom = roomService.getRoom(roomInfo.roomCode);
+
+      expect(joinResult).toBe(true);
+      expect(updatedRoom?.players).toContain(creator);
+      expect(updatedRoom?.players).toContain(joiner);
+      expect(updatedRoom?.players.length).toBe(2);
+    });
+
+    it('should not allow trying to join a non-existent room', () => {
+      const joinResult = roomService.joinRoom('invalidRoomCode', 'someUser');
+
+      expect(joinResult).toBe(false);
+    });
+
+    it('should not add the same user twice to a room', () => {
+      const username = 'duplicateUser';   
+      const roomInfo = roomService.createRoom(username);
+
+      const firstJoin = roomService.joinRoom(roomInfo.roomCode, username);
+      const updatedRoom = roomService.getRoom(roomInfo.roomCode);
+
+      expect(firstJoin).toBe(false);
+      expect(updatedRoom?.players).toEqual([username]);
+      expect(updatedRoom?.players.length).toBe(1);
+    });
+
+    it('should allow multiple different users to join the same room', () => {
+      const roomInfo = roomService.createRoom('hostUser');
+
+      const usersToJoin = ['userA', 'userB', 'userC'];
+      usersToJoin.forEach(user => {
+        const joinResult = roomService.joinRoom(roomInfo.roomCode, user);
+        expect(joinResult).toBe(true);
+      });
+
+      const updatedRoom = roomService.getRoom(roomInfo.roomCode);
+      expect(updatedRoom?.players.length).toBe(4);
+      expect(updatedRoom?.players).toContain('hostUser');
+      usersToJoin.forEach(user => {
+        expect(updatedRoom?.players).toContain(user);
+      });
+    });
+  });
 });
 

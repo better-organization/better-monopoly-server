@@ -10,6 +10,7 @@ export class RoomController {
     this.roomService = roomService;
     this.createRoom = this.createRoom.bind(this);
     this.roomStatus = this.roomStatus.bind(this);
+    this.joinRoom = this.joinRoom.bind(this);
   }
 
   createRoom(req: Request, res: Response): void {
@@ -76,5 +77,61 @@ export class RoomController {
     }
 
     res.status(200).json(roomStatus);
+  }
+
+  joinRoom(req: Request, res: Response): void {
+    const roomCode = req.body?.roomCode;
+    const username = req.user?.username;
+
+    if (!username) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'username not found in authentication token',
+      });
+      return;
+    }
+
+    if (!roomCode) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'roomCode not found in request',
+      });
+      return;
+    }
+
+    try {
+      const success = this.roomService.joinRoom(roomCode, username);
+
+      console.log(
+        'Join result: ',
+        success,
+        'for user:',
+        username,
+        'to room:',
+        roomCode
+      );
+      const statusCode = success ? 200 : 400;
+      const message = success
+        ? 'Joined room successfully'
+        : 'Failed to join room';
+
+      if (success) {
+        const currentToken = cookieUtil.getCookie(req, 'auth_token');
+        if (currentToken) {
+          const newToken = tokenUtil.updateRoomCode(currentToken, roomCode);
+          cookieUtil.setCookie(res, 'auth_token', newToken, 24);
+        }
+      }
+
+      res.status(statusCode).json({ success, message });
+    } catch (error) {
+      console.error('Error joining room:', error);
+
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while trying to join the room',
+      });
+      return;
+    }
   }
 }
