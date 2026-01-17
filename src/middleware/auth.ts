@@ -31,7 +31,7 @@ export const requireAuth = (
 
     next();
   } catch (error) {
-    console.error("Authentication Middleware error:", error);
+    console.error('Authentication Middleware error:', error);
 
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
