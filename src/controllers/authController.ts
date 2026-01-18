@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
-import { ERROR_MESSAGES } from '../utils/errorMessages';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 import { cookieUtil } from '../utils/cookieUtil';
 
 interface RegisterRequest {
@@ -20,19 +20,19 @@ export const userIdExists = async (
 
     const statusCode = result.success
       ? 200
-      : result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
+      : result.error === RESPONSE_MESSAGES.USERID_ALREADY_EXISTS
         ? 409
         : 400;
 
     res.status(statusCode).json({
       success: result.success,
-      message: result.success ? 'UserId is available' : result.error,
+      message: result.success ? RESPONSE_MESSAGES.USERID_AVAILABLE : result.error,
     });
   } catch (error) {
     console.error('UserIdExists error:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred during validating user id',
+      message: RESPONSE_MESSAGES.VALIDATION_ERROR,
     });
   }
 };
@@ -49,21 +49,21 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     const statusCode = result.success
       ? 201
-      : result.error === ERROR_MESSAGES.USERID_ALREADY_EXISTS
+      : result.error === RESPONSE_MESSAGES.USERID_ALREADY_EXISTS
         ? 409
         : 400;
 
     res.status(statusCode).json({
       success: result.success,
       message: result.success
-        ? result.data?.message || 'User registered successfully'
+        ? result.data?.message || RESPONSE_MESSAGES.USER_REGISTERED_SUCCESSFULLY
         : result.error,
     });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred during registration',
+      message: RESPONSE_MESSAGES.REGISTRATION_ERROR,
     });
   }
 };
@@ -81,7 +81,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const statusCode = result.success
       ? 200
-      : result.error === ERROR_MESSAGES.INVALID_CREDENTIALS
+      : result.error === RESPONSE_MESSAGES.INVALID_CREDENTIALS
         ? 401
         : 400;
 
@@ -93,13 +93,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Success response
     res.status(statusCode).json({
       success: result.success,
-      message: result.success ? 'Login successful' : result.error,
+      message: result.success ? RESPONSE_MESSAGES.LOGIN_SUCCESSFUL : result.error,
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred during login',
+      message: RESPONSE_MESSAGES.LOGIN_ERROR,
     });
   }
 };
@@ -112,13 +112,13 @@ export const getProfile = async (
     // TODO: Implement profile endpoint with auth middleware later
     res.status(501).json({
       success: false,
-      message: 'Profile endpoint will be implemented later',
+      message: RESPONSE_MESSAGES.PROFILE_NOT_IMPLEMENTED,
     });
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred while fetching profile',
+      message: RESPONSE_MESSAGES.PROFILE_ERROR,
     });
   }
 };
@@ -138,13 +138,13 @@ export const logout = async (_req: Request, res: Response): Promise<void> => {
 
     res.status(200).json({
       success: true,
-      message: 'Logged out successfully',
+      message: RESPONSE_MESSAGES.LOGGED_OUT_SUCCESSFULLY,
     });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred during logout',
+      message: RESPONSE_MESSAGES.LOGOUT_ERROR,
     });
   }
 };

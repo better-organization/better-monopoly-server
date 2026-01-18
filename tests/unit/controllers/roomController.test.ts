@@ -78,11 +78,12 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(mockRoomService.createRoom).toHaveBeenCalledWith('testUser');
+      expect(mockRoomService.createRoom).toHaveBeenCalledWith('user-123');
       expect(statusMock).toHaveBeenCalledWith(201);
       expect(jsonMock).toHaveBeenCalledWith({
+        success: true,
         message: 'Room created successfully',
-        roomCode: 'ABC123',
+        data: {roomCode: 'ABC123'},
       });
     });
 
@@ -96,16 +97,16 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'Username not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
       expect(mockRoomService.createRoom).not.toHaveBeenCalled();
     });
 
     it('should return 400 when username is empty string', () => {
       mockRequest.user = {
-        username: '',
-        userId: 'user-123',
+        username: 'user-123',
+        userId: '',
         roomCode: null,
         gameId: null,
       };
@@ -117,8 +118,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'Username not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
     });
 
@@ -133,6 +134,7 @@ describe('RoomController', () => {
       expect(statusMock).toHaveBeenCalledWith(500);
       expect(jsonMock).toHaveBeenCalledWith({
         message: 'Failed to create room',
+        success: false,
       });
     });
 
@@ -208,13 +210,17 @@ describe('RoomController', () => {
 
       expect(mockRoomService.getRoom).toHaveBeenCalledWith('ABC123');
       expect(statusMock).toHaveBeenCalledWith(200);
-      expect(jsonMock).toHaveBeenCalledWith(mockRoomInfo);
+      expect(jsonMock).toHaveBeenCalledWith({
+        data: mockRoomInfo,
+        message: "Room status retrieved successfully",
+        success: true,
+      });
     });
 
     it('should return 400 when username is missing', () => {
       mockRequest.user = {
-        username: '',
-        userId: 'user-123',
+        username: 'UserId',
+        userId: '',
         roomCode: 'ABC123',
         gameId: null,
       };
@@ -226,8 +232,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'username not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
       expect(mockRoomService.getRoom).not.toHaveBeenCalled();
     });
@@ -247,8 +253,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'roomCode not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
       expect(mockRoomService.getRoom).not.toHaveBeenCalled();
     });
@@ -268,8 +274,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'roomCode not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
     });
 
@@ -283,8 +289,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(404);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Not Found',
         message: 'Room not found',
+        success: false,
       });
     });
 
@@ -298,8 +304,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'username not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
     });
   });
@@ -315,8 +321,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'username not found in authentication token',
+        message: "Required Property not found in token",
+        success: false,
       });
     });
 
@@ -335,8 +341,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'roomCode not found in request',
+        message: "Required Property not found in request",
+        success: false,
       });
     });
 
@@ -355,8 +361,8 @@ describe('RoomController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'roomCode not found in request',
+        message: "Required Property not found in request",
+        success: false,
       });
     });
 
@@ -378,7 +384,7 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(mockRoomService.joinRoom).toHaveBeenCalledWith('ABC123', 'testUser');
+      expect(mockRoomService.joinRoom).toHaveBeenCalledWith('ABC123', 'user-123');
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
         success: true,
@@ -404,7 +410,7 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(mockRoomService.joinRoom).toHaveBeenCalledWith('ABC123', 'testUser');
+      expect(mockRoomService.joinRoom).toHaveBeenCalledWith('ABC123', 'user-123');
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
         message: 'Failed to join room',
@@ -433,7 +439,7 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(mockRoomService.joinRoom).toHaveBeenCalledWith('ABC123', 'testUser');
+      expect(mockRoomService.joinRoom).toHaveBeenCalledWith('ABC123', 'user-123');
       expect(statusMock).toHaveBeenCalledWith(500);
       expect(jsonMock).toHaveBeenCalledWith({
         success: false,

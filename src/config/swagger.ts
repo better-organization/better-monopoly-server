@@ -1,5 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
-import { ERROR_MESSAGES } from '../utils/errorMessages';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -242,7 +242,7 @@ const options: swaggerJsdoc.Options = {
             message: {
               type: 'string',
               description: 'Detailed error message',
-              example: ERROR_MESSAGES.REGISTRATION_REQUIRED_FIELDS,
+              example: RESPONSE_MESSAGES.REGISTRATION_REQUIRED_FIELDS,
             },
           },
         },
@@ -257,17 +257,17 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               description: 'Specific validation error message',
               enum: [
-                ERROR_MESSAGES.REGISTRATION_REQUIRED_FIELDS,
-                ERROR_MESSAGES.REGISTRATION_FIELD_TYPES,
-                ERROR_MESSAGES.USERNAME_MIN_LENGTH,
-                ERROR_MESSAGES.PASSWORD_MIN_LENGTH,
-                ERROR_MESSAGES.USERID_MIN_LENGTH,
-                ERROR_MESSAGES.USERNAME_PATTERN,
-                ERROR_MESSAGES.USERID_PATTERN,
-                ERROR_MESSAGES.LOGIN_REQUIRED_FIELDS,
-                ERROR_MESSAGES.LOGIN_FIELD_TYPES,
-                ERROR_MESSAGES.USERID_REQUIRED,
-                ERROR_MESSAGES.USERID_TYPE,
+                RESPONSE_MESSAGES.REGISTRATION_REQUIRED_FIELDS,
+                RESPONSE_MESSAGES.REGISTRATION_FIELD_TYPES,
+                RESPONSE_MESSAGES.USERNAME_MIN_LENGTH,
+                RESPONSE_MESSAGES.PASSWORD_MIN_LENGTH,
+                RESPONSE_MESSAGES.USERID_MIN_LENGTH,
+                RESPONSE_MESSAGES.USERNAME_PATTERN,
+                RESPONSE_MESSAGES.USERID_PATTERN,
+                RESPONSE_MESSAGES.LOGIN_REQUIRED_FIELDS,
+                RESPONSE_MESSAGES.LOGIN_FIELD_TYPES,
+                RESPONSE_MESSAGES.USERID_REQUIRED,
+                RESPONSE_MESSAGES.USERID_TYPE,
               ],
             },
           },
@@ -281,7 +281,7 @@ const options: swaggerJsdoc.Options = {
             },
             message: {
               type: 'string',
-              example: ERROR_MESSAGES.USERID_ALREADY_EXISTS,
+              example: RESPONSE_MESSAGES.USERID_ALREADY_EXISTS,
             },
           },
         },
@@ -290,7 +290,7 @@ const options: swaggerJsdoc.Options = {
           properties: {
             error: {
               type: 'string',
-              example: ERROR_MESSAGES.INVALID_CREDENTIALS,
+              example: RESPONSE_MESSAGES.INVALID_CREDENTIALS,
             },
           },
         },

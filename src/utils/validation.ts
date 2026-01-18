@@ -1,5 +1,5 @@
 // Simple validation with object-based checks
-import { ERROR_MESSAGES } from './errorMessages';
+import { RESPONSE_MESSAGES } from './responseMessages';
 
 export const validateRegistration = (
   username: string,
@@ -7,18 +7,18 @@ export const validateRegistration = (
   userId: string
 ): void => {
   const registrationChecks = {
-    [ERROR_MESSAGES.REGISTRATION_REQUIRED_FIELDS]: () =>
+    [RESPONSE_MESSAGES.REGISTRATION_REQUIRED_FIELDS]: () =>
       !username || !password || !userId,
-    [ERROR_MESSAGES.REGISTRATION_FIELD_TYPES]: () =>
+    [RESPONSE_MESSAGES.REGISTRATION_FIELD_TYPES]: () =>
       typeof username !== 'string' ||
       typeof password !== 'string' ||
       typeof userId !== 'string',
-    [ERROR_MESSAGES.USERNAME_MIN_LENGTH]: () => username.trim().length < 3,
-    [ERROR_MESSAGES.PASSWORD_MIN_LENGTH]: () => password.length < 6,
-    [ERROR_MESSAGES.USERID_MIN_LENGTH]: () => userId.trim().length < 3,
-    [ERROR_MESSAGES.USERNAME_PATTERN]: () =>
+    [RESPONSE_MESSAGES.USERNAME_MIN_LENGTH]: () => username.trim().length < 3,
+    [RESPONSE_MESSAGES.PASSWORD_MIN_LENGTH]: () => password.length < 6,
+    [RESPONSE_MESSAGES.USERID_MIN_LENGTH]: () => userId.trim().length < 3,
+    [RESPONSE_MESSAGES.USERNAME_PATTERN]: () =>
       !/^[a-zA-Z0-9_]+$/.test(username.trim()),
-    [ERROR_MESSAGES.USERID_PATTERN]: () =>
+    [RESPONSE_MESSAGES.USERID_PATTERN]: () =>
       !/^[a-zA-Z0-9_-]+$/.test(userId.trim()),
   };
 
@@ -33,8 +33,8 @@ export const validateRegistration = (
 
 export const validateLogin = (userId: string, password: string): void => {
   const loginChecks = {
-    [ERROR_MESSAGES.LOGIN_REQUIRED_FIELDS]: () => !userId || !password,
-    [ERROR_MESSAGES.LOGIN_FIELD_TYPES]: () =>
+    [RESPONSE_MESSAGES.LOGIN_REQUIRED_FIELDS]: () => !userId || !password,
+    [RESPONSE_MESSAGES.LOGIN_FIELD_TYPES]: () =>
       typeof userId !== 'string' || typeof password !== 'string',
   };
 
@@ -47,10 +47,10 @@ export const validateLogin = (userId: string, password: string): void => {
 
 export const validateUserIdOnly = (userId: string): void => {
   const userIdChecks = {
-    [ERROR_MESSAGES.USERID_REQUIRED]: () => !userId,
-    [ERROR_MESSAGES.USERID_TYPE]: () => typeof userId !== 'string',
-    [ERROR_MESSAGES.USERID_MIN_LENGTH]: () => userId.trim().length < 3,
-    [ERROR_MESSAGES.USERID_PATTERN]: () =>
+    [RESPONSE_MESSAGES.USERID_REQUIRED]: () => !userId,
+    [RESPONSE_MESSAGES.USERID_TYPE]: () => typeof userId !== 'string',
+    [RESPONSE_MESSAGES.USERID_MIN_LENGTH]: () => userId.trim().length < 3,
+    [RESPONSE_MESSAGES.USERID_PATTERN]: () =>
       !/^[a-zA-Z0-9_-]+$/.test(userId.trim()),
   };
 

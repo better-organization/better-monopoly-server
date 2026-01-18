@@ -6,7 +6,7 @@ import {
   validateLogin,
   validateUserIdOnly,
 } from '../utils/validation';
-import { ERROR_MESSAGES } from '../utils/errorMessages';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 import * as dotenv from 'dotenv';
 import { tokenUtil } from '../utils/TokenUtil';
 
@@ -58,7 +58,7 @@ export class AuthService {
       if (exists) {
         return {
           success: false,
-          error: ERROR_MESSAGES.USERID_ALREADY_EXISTS,
+          error: RESPONSE_MESSAGES.USERID_ALREADY_EXISTS,
         };
       }
 
@@ -72,7 +72,7 @@ export class AuthService {
         error:
           error instanceof Error
             ? error?.message
-            : 'An error occurred during validation',
+            : RESPONSE_MESSAGES.VALIDATION_SERVICE_ERROR,
       };
     }
   }
@@ -91,7 +91,7 @@ export class AuthService {
       if (await User.userIdExists(trimmedUserId)) {
         return {
           success: false,
-          error: ERROR_MESSAGES.USERID_ALREADY_EXISTS,
+          error: RESPONSE_MESSAGES.USERID_ALREADY_EXISTS,
         };
       }
 
@@ -102,7 +102,7 @@ export class AuthService {
       return {
         success: true,
         data: {
-          message: 'User registered successfully. Please login to continue.',
+          message: RESPONSE_MESSAGES.USER_REGISTRATION_SUCCESS,
         },
       };
     } catch (error) {
@@ -111,7 +111,7 @@ export class AuthService {
         error:
           error instanceof Error
             ? error?.message
-            : 'An error occurred during registration',
+            : RESPONSE_MESSAGES.REGISTRATION_SERVICE_ERROR,
       };
     }
   }
@@ -132,7 +132,7 @@ export class AuthService {
       if (!user) {
         return {
           success: false,
-          error: ERROR_MESSAGES.INVALID_CREDENTIALS,
+          error: RESPONSE_MESSAGES.INVALID_CREDENTIALS,
         };
       }
 
@@ -141,7 +141,7 @@ export class AuthService {
       if (!isPasswordValid) {
         return {
           success: false,
-          error: ERROR_MESSAGES.INVALID_CREDENTIALS,
+          error: RESPONSE_MESSAGES.INVALID_CREDENTIALS,
         };
       }
 
@@ -157,7 +157,7 @@ export class AuthService {
         error:
           error instanceof Error
             ? error?.message
-            : 'An error occurred during login',
+            : RESPONSE_MESSAGES.LOGIN_SERVICE_ERROR,
       };
     }
   }

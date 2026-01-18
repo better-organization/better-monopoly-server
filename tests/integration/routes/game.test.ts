@@ -28,12 +28,14 @@ describe('Game Routes', () => {
         '/api/game/board/european_football_club_giants/version/1.0'
       );
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.id).toBe('european_football_club_giants');
-      expect(response.body).toHaveProperty('version');
-      expect(response.body.version).toBe('1.0');
-      expect(response.body).toHaveProperty('cells');
-      expect(Array.isArray(response.body.cells)).toBe(true);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data.id).toBe('european_football_club_giants');
+      expect(response.body.data).toHaveProperty('version');
+      expect(response.body.data.version).toBe('1.0');
+      expect(response.body.data).toHaveProperty('cells');
+      expect(Array.isArray(response.body.data.cells)).toBe(true);
     });
 
     it('should return 404 for non-existent board', async () => {
@@ -41,8 +43,8 @@ describe('Game Routes', () => {
         '/api/game/board/nonexistent/version/1.0'
       );
       expect(response.status).toBe(404);
-      expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toBe('BOARD_NOT_FOUND');
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Board not found');
     });
 
     it('should return 404 for missing boardId (empty parameter)', async () => {
@@ -86,12 +88,12 @@ describe('Game Routes', () => {
         '/api/game/board/european_football_club_giants/version/1.0'
       );
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('edition');
-      expect(response.body).toHaveProperty('currency');
-      expect(response.body.currency).toBe('EURO');
-      expect(response.body).toHaveProperty('currency_symbol');
-      expect(response.body).toHaveProperty('terms');
-      expect(response.body.terms).toHaveProperty('player');
+      expect(response.body.data).toHaveProperty('edition');
+      expect(response.body.data).toHaveProperty('currency');
+      expect(response.body.data.currency).toBe('EURO');
+      expect(response.body.data).toHaveProperty('currency_symbol');
+      expect(response.body.data).toHaveProperty('terms');
+      expect(response.body.data.terms).toHaveProperty('player');
     });
 
     it('should return cells array with multiple elements', async () => {
@@ -99,8 +101,8 @@ describe('Game Routes', () => {
         '/api/game/board/european_football_club_giants/version/1.0'
       );
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body.cells)).toBe(true);
-      expect(response.body.cells.length).toBeGreaterThan(0);
+      expect(Array.isArray(response.body.data.cells)).toBe(true);
+      expect(response.body.data.cells.length).toBeGreaterThan(0);
     });
 
     it('should flatten cell details in response', async () => {
@@ -108,7 +110,7 @@ describe('Game Routes', () => {
         '/api/game/board/european_football_club_giants/version/1.0'
       );
       expect(response.status).toBe(200);
-      const cells = response.body.cells;
+      const cells = response.body.data.cells;
       // Check for flattened properties from nested objects
       const hasSpecialOrProperty = cells.some(
         (c: any) =>

@@ -2,6 +2,7 @@ export interface IRoomInfo {
   roomId: string;
   roomCode: string;
   players: string[];
+  user?: string;
 }
 
 export class Room {
@@ -15,9 +16,9 @@ export class Room {
     this.players = new Set<string>();
   }
 
-  addPlayer(username: string): boolean {
+  addPlayer(userId: string): boolean {
     const currentSize = this.players.size;
-    this.players.add(username);
+    this.players.add(userId);
     return currentSize + 1 === this.players.size;
   }
 

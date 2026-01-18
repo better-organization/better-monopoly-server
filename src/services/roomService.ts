@@ -40,12 +40,12 @@ export class RoomService {
     return code;
   }
 
-  createRoom(username: string): IRoomInfo {
+  createRoom(userId: string): IRoomInfo {
     const roomId = randomUUID();
     const roomCode = this.generateRoomCode();
 
     const room = new Room(roomId, roomCode);
-    room.addPlayer(username);
+    room.addPlayer(userId);
 
     this.roomsById.set(roomId, room);
     this.roomsByCode.set(roomCode, roomId);
@@ -66,11 +66,11 @@ export class RoomService {
     return;
   }
 
-  joinRoom(roomCode: string, username: string) {
+  joinRoom(roomCode: string, userId: string) {
     const roomId = this.roomsByCode.get(roomCode);
     if (roomId) {
       const room = this.roomsById.get(roomId);
-      return room?.addPlayer(username);
+      return room?.addPlayer(userId);
     }
 
     return false;

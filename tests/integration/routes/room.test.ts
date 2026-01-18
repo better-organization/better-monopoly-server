@@ -45,10 +45,11 @@ describe('Room Routes', () => {
         .send();
 
       expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('success', true);
       expect(response.body).toHaveProperty('message', 'Room created successfully');
-      expect(response.body).toHaveProperty('roomCode');
-      expect(typeof response.body.roomCode).toBe('string');
-      expect(response.body.roomCode).toHaveLength(6);
+      expect(response.body.data).toHaveProperty('roomCode');
+      expect(typeof response.body.data.roomCode).toBe('string');
+      expect(response.body.data.roomCode).toHaveLength(6);
     });
 
     it('should return 401 when not authenticated', async () => {
@@ -91,7 +92,7 @@ describe('Room Routes', () => {
 
       expect(response1.status).toBe(201);
       expect(response2.status).toBe(201);
-      expect(response1.body.roomCode).not.toBe(response2.body.roomCode);
+      expect(response1.body.data.roomCode).not.toBe(response2.body.data.roomCode);
     });
 
     it('should add creator as first player in the room', async () => {
@@ -114,8 +115,8 @@ describe('Room Routes', () => {
         .send();
 
       expect(statusResponse.status).toBe(200);
-      expect(statusResponse.body.players).toContain('creator');
-      expect(statusResponse.body.players.length).toBe(1);
+      expect(statusResponse.body.data.players).toContain('creator123');
+      expect(statusResponse.body.data.players.length).toBe(1);
     });
   });
 
@@ -137,12 +138,13 @@ describe('Room Routes', () => {
         .set('Cookie', updatedCookies)
         .send();
 
+      const status = response.body.data;
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('roomId');
-      expect(response.body).toHaveProperty('roomCode');
-      expect(response.body).toHaveProperty('players');
-      expect(Array.isArray(response.body.players)).toBe(true);
-      expect(response.body.players).toContain('testUser');
+      expect(status).toHaveProperty('roomId');
+      expect(status).toHaveProperty('roomCode');
+      expect(status).toHaveProperty('players');
+      expect(Array.isArray(status.players)).toBe(true);
+      expect(status.players).toContain('testuser123');
     });
 
     it('should return 401 when not authenticated', async () => {
@@ -163,7 +165,8 @@ describe('Room Routes', () => {
         .send();
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toBe('roomCode not found in authentication token');
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Required Property not found in token');
     });
 
     it('should return correct room information', async () => {
@@ -175,7 +178,7 @@ describe('Room Routes', () => {
         .set('Cookie', cookies)
         .send();
 
-      const roomCode = createResponse.body.roomCode;
+      const roomCode = createResponse.body.data.roomCode;
       const updatedCookies = getCookies(createResponse.headers);
 
       // Get status
@@ -185,8 +188,8 @@ describe('Room Routes', () => {
         .send();
 
       expect(statusResponse.status).toBe(200);
-      expect(statusResponse.body.roomCode).toBe(roomCode);
-      expect(statusResponse.body.players).toEqual(['player1']);
+      expect(statusResponse.body.data.roomCode).toBe(roomCode);
+      expect(statusResponse.body.data.players).toEqual(['player1id']);
     });
 
     it('should show room with correct structure', async () => {
@@ -205,10 +208,10 @@ describe('Room Routes', () => {
         .send();
 
       expect(response.status).toBe(200);
-      expect(typeof response.body.roomId).toBe('string');
-      expect(typeof response.body.roomCode).toBe('string');
-      expect(response.body.roomCode).toHaveLength(6);
-      expect(Array.isArray(response.body.players)).toBe(true);
+      expect(typeof response.body.data.roomId).toBe('string');
+      expect(typeof response.body.data.roomCode).toBe('string');
+      expect(response.body.data.roomCode).toHaveLength(6);
+      expect(Array.isArray(response.body.data.players)).toBe(true);
     });
   });
 
@@ -222,7 +225,7 @@ describe('Room Routes', () => {
         .send();
 
       expect(createResponse.status).toBe(201);
-      const roomCode = createResponse.body.roomCode;
+      const roomCode = createResponse.body.data.roomCode;
 
       // Register and login user2
       const cookies2 = await registerAndLogin('user2', 'user2id');
@@ -246,7 +249,7 @@ describe('Room Routes', () => {
         .set('Cookie', cookies1)
         .send();
 
-      const roomCode = createResponse.body.roomCode;
+      const roomCode = createResponse.body.data.roomCode;
       const creatorCookiesUpdated = getCookies(createResponse.headers);
 
       // Register and login joiner
@@ -267,9 +270,9 @@ describe('Room Routes', () => {
         .send();
 
       expect(statusResponse.status).toBe(200);
-      expect(statusResponse.body.players).toContain('creator');
-      expect(statusResponse.body.players).toContain('joiner');
-      expect(statusResponse.body.players.length).toBe(2);
+      expect(statusResponse.body.data.players).toContain('creatorid');
+      expect(statusResponse.body.data.players).toContain('joinerid');
+      expect(statusResponse.body.data.players.length).toBe(2);
     });
 
     it('should update the joiner\'s auth token with roomCode', async () => {
@@ -280,7 +283,7 @@ describe('Room Routes', () => {
         .set('Cookie', cookiesCreator)
         .send();
 
-      const roomCode = createResponse.body.roomCode;
+      const roomCode = createResponse.body.data.roomCode;
 
       // Register joiner
       const cookiesJoiner = await registerAndLogin('joiner', 'joinerid');
@@ -302,8 +305,8 @@ describe('Room Routes', () => {
         .send();
 
       expect(statusResponse.status).toBe(200);
-      expect(statusResponse.body.roomCode).toBe(roomCode);
-      expect(statusResponse.body.players).toContain('joiner');
+      expect(statusResponse.body.data.roomCode).toBe(roomCode);
+      expect(statusResponse.body.data.players).toContain('joinerid');
     });
 
     it('should return 401 when not authenticated', async () => {
@@ -324,7 +327,8 @@ describe('Room Routes', () => {
         .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toBe('roomCode not found in request');
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('not found in request');
     });
 
     it('should return 400 when trying to join non-existent room', async () => {
@@ -348,7 +352,7 @@ describe('Room Routes', () => {
         .set('Cookie', cookiesHost)
         .send();
 
-      const roomCode = createResponse.body.roomCode;
+      const roomCode = createResponse.body.data.roomCode;
       const hostCookiesUpdated = getCookies(createResponse.headers);
 
       // Register players
@@ -378,12 +382,13 @@ describe('Room Routes', () => {
         .set('Cookie', hostCookiesUpdated)
         .send();
 
+      const status = statusResponse.body.data;
       expect(statusResponse.status).toBe(200);
-      expect(statusResponse.body.players).toContain('host');
-      expect(statusResponse.body.players).toContain('player1');
-      expect(statusResponse.body.players).toContain('player2');
-      expect(statusResponse.body.players).toContain('player3');
-      expect(statusResponse.body.players.length).toBe(4);
+      expect(status.players).toContain('hostid');
+      expect(status.players).toContain('player1id');
+      expect(status.players).toContain('player2id');
+      expect(status.players).toContain('player3id');
+      expect(status.players.length).toBe(4);
     });
 
     it('should return success false when trying to join same room twice', async () => {
@@ -431,9 +436,9 @@ describe('Room Routes', () => {
         .send();
 
       expect(createResponse.status).toBe(201);
-      expect(createResponse.body).toHaveProperty('roomCode');
+      expect(createResponse.body.data).toHaveProperty('roomCode');
 
-      const roomCode = createResponse.body.roomCode;
+      const roomCode = createResponse.body.data.roomCode;
       const updatedCookies = getCookies(createResponse.headers);
 
       // Step 2: Check status
@@ -443,8 +448,8 @@ describe('Room Routes', () => {
         .send();
 
       expect(statusResponse.status).toBe(200);
-      expect(statusResponse.body.roomCode).toBe(roomCode);
-      expect(statusResponse.body.players).toContain('fullWorkflowUser');
+      expect(statusResponse.body.data.roomCode).toBe(roomCode);
+      expect(statusResponse.body.data.players).toContain('workflow123');
     });
 
     it('should maintain separate rooms for different users', async () => {
@@ -463,7 +468,7 @@ describe('Room Routes', () => {
         .set('Cookie', cookiesB)
         .send();
 
-      expect(createA.body.roomCode).not.toBe(createB.body.roomCode);
+      expect(createA.body.data.roomCode).not.toBe(createB.body.data.roomCode);
 
       // Check status A
       const statusA = await request(app)
@@ -477,10 +482,12 @@ describe('Room Routes', () => {
         .set('Cookie', getCookies(createB.headers))
         .send();
 
-      expect(statusA.body.players).toEqual(['userA']);
-      expect(statusB.body.players).toEqual(['userB']);
-      expect(statusA.body.roomId).not.toBe(statusB.body.roomId);
-      expect(statusA.body.roomCode).not.toBe(statusB.body.roomCode);
+      const statusOfA = statusA.body.data;
+      const statusOfB = statusB.body.data;
+      expect(statusOfA.players).toEqual(['userAid']);
+      expect(statusOfB.players).toEqual(['userBid']);
+      expect(statusOfA.roomId).not.toBe(statusOfB.roomId);
+      expect(statusOfA.roomCode).not.toBe(statusOfB.roomCode);
     });
   });
 
