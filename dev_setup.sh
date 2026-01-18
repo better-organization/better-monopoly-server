@@ -11,12 +11,17 @@ if [ $? -ne 0 ]; then
   echo "Lint failed. Push aborted."
   exit 1
 fi
+  yarn format
+if [ $? -ne 0 ]; then
+  echo "Format failed. Push aborted."
+  exit 1
+fi
   yarn test
 if [ $? -ne 0 ]; then
   echo "Tests failed. Push aborted."
   exit 1
 fi
-echo "Lint and tests passed. Proceeding with push."
+echo "Lint, format and tests passed. Proceeding with push."
 exit 0
 EOF
 chmod +x "$HOOKS_DIR/pre-push"
