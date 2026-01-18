@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -21,14 +22,12 @@ export const errorHandler = (
   // Default error
   if (!error.statusCode) {
     error.statusCode = 500;
-    error.message = 'Internal Server Error';
+    error.message = RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR;
   }
 
   res.status(error.statusCode || 500).json({
     success: false,
-    error: {
-      message: error.message,
-      ...(process.env['NODE_ENV'] === 'development' && { stack: err.stack }),
-    },
+    message: error.message,
+    ...(process.env['NODE_ENV'] === 'development' && { stack: err.stack }),
   });
 };

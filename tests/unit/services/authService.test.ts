@@ -3,7 +3,7 @@ import { AuthService } from '../../../src/services/authService';
 import { User } from '../../../src/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { ERROR_MESSAGES } from '../../../src/utils/errorMessages';
+import { RESPONSE_MESSAGES } from '../../../src/utils/responseMessages';
 
 // Mock bcrypt
 jest.mock('bcryptjs');
@@ -25,28 +25,28 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       const result = await AuthService.validateUserIdExists('');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERID_REQUIRED);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERID_REQUIRED);
     });
 
     it('should return error for non-string userId', async () => {
       const result = await AuthService.validateUserIdExists(123 as any);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERID_TYPE);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERID_TYPE);
     });
 
     it('should return error for short userId', async () => {
       const result = await AuthService.validateUserIdExists('ab');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERID_MIN_LENGTH);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERID_MIN_LENGTH);
     });
 
     it('should return error for invalid userId pattern', async () => {
       const result = await AuthService.validateUserIdExists('user@123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERID_PATTERN);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERID_PATTERN);
     });
 
     it('should return error when userId already exists', async () => {
@@ -56,7 +56,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       const result = await AuthService.validateUserIdExists('validUser123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERID_ALREADY_EXISTS);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERID_ALREADY_EXISTS);
     });
 
     it('should return success when userId is available', async () => {
@@ -93,7 +93,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.REGISTRATION_REQUIRED_FIELDS);
+      expect(result.error).toBe(RESPONSE_MESSAGES.REGISTRATION_REQUIRED_FIELDS);
     });
 
     it('should return error for non-string fields', async () => {
@@ -104,7 +104,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.REGISTRATION_FIELD_TYPES);
+      expect(result.error).toBe(RESPONSE_MESSAGES.REGISTRATION_FIELD_TYPES);
     });
 
     it('should return error for short username', async () => {
@@ -115,7 +115,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERNAME_MIN_LENGTH);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERNAME_MIN_LENGTH);
     });
 
     it('should return error for short password', async () => {
@@ -126,7 +126,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.PASSWORD_MIN_LENGTH);
+      expect(result.error).toBe(RESPONSE_MESSAGES.PASSWORD_MIN_LENGTH);
     });
 
     it('should return error for invalid username pattern', async () => {
@@ -137,7 +137,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERNAME_PATTERN);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERNAME_PATTERN);
     });
 
     it('should return error when userId already exists', async () => {
@@ -147,7 +147,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       const result = await AuthService.registerUser(validRegisterData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.USERID_ALREADY_EXISTS);
+      expect(result.error).toBe(RESPONSE_MESSAGES.USERID_ALREADY_EXISTS);
     });
 
     it('should successfully register user with valid data', async () => {
@@ -206,7 +206,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.LOGIN_REQUIRED_FIELDS);
+      expect(result.error).toBe(RESPONSE_MESSAGES.LOGIN_REQUIRED_FIELDS);
     });
 
     it('should return error for non-string fields', async () => {
@@ -216,14 +216,14 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.LOGIN_FIELD_TYPES);
+      expect(result.error).toBe(RESPONSE_MESSAGES.LOGIN_FIELD_TYPES);
     });
 
     it('should return error when user does not exist', async () => {
       const result = await AuthService.loginUser(validLoginData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.INVALID_CREDENTIALS);
+      expect(result.error).toBe(RESPONSE_MESSAGES.INVALID_CREDENTIALS);
     });
 
     it('should return error for invalid password', async () => {
@@ -237,7 +237,7 @@ describe('AuthService - MongoDB with Separate Collections', () => {
       const result = await AuthService.loginUser(validLoginData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(ERROR_MESSAGES.INVALID_CREDENTIALS);
+      expect(result.error).toBe(RESPONSE_MESSAGES.INVALID_CREDENTIALS);
       expect(mockedBcrypt.compare).toHaveBeenCalledWith(
         'password123',
         'hashedPassword123'

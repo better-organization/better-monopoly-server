@@ -50,9 +50,11 @@ describe('Room Model', () => {
     it('should add a player to the room', () => {
       const room = new Room('room-id', 'CODE01');
 
-      room.addPlayer('player1');
+      const isPlayerAdded = room.addPlayer('player1');
+
       const roomInfo = room.getRoomInfo();
 
+      expect(isPlayerAdded).toBe(true);
       expect(roomInfo.players.length).toBe(1);
       expect(roomInfo.players).toContain('player1');
     });
@@ -60,14 +62,31 @@ describe('Room Model', () => {
     it('should add multiple players to the room', () => {
       const room = new Room('room-id', 'CODE01');
 
-      room.addPlayer('player1');
-      room.addPlayer('player2');
-      room.addPlayer('player3');
+      const isFirstPlayerAdded = room.addPlayer('player1');
+      const isSecondPlayerAdded = room.addPlayer('player2');
+      const isThirdPlayerAdded = room.addPlayer('player3');
 
       const roomInfo = room.getRoomInfo();
 
+      expect(isFirstPlayerAdded).toBe(true);
+      expect(isSecondPlayerAdded).toBe(true);
+      expect(isThirdPlayerAdded).toBe(true);
       expect(roomInfo.players.length).toBe(3);
       expect(roomInfo.players).toEqual(['player1', 'player2', 'player3']);
+    });
+
+    it('should not add duplicate players to the room', () => {
+      const room = new Room('room-id', 'CODE01');
+
+      const isFirstPlayerAdded = room.addPlayer('player1');
+      const isDuplicatePlayerAdded = room.addPlayer('player1');
+
+      const roomInfo = room.getRoomInfo();
+
+      expect(isFirstPlayerAdded).toBe(true);
+      expect(isDuplicatePlayerAdded).toBe(false);
+      expect(roomInfo.players.length).toBe(1);
+      expect(roomInfo.players).toEqual(['player1']);
     });
   });
 });

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { GameService } from '../services/gameService';
 import { DiceRollRequest, DiceRollData } from '../types/game';
 import { ResponseType } from '../types/response';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 export class GameController {
   /**
@@ -36,7 +37,7 @@ export class GameController {
       console.error('Roll dice error:', error);
       res.status(500).json({
         success: false,
-        message: 'An error occurred while rolling dice',
+        message: RESPONSE_MESSAGES.ROLL_DICE_ERROR,
       });
     }
   }

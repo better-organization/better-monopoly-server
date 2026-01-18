@@ -100,4 +100,74 @@ router.post('/create', requireAuth, roomController.createRoom);
  */
 router.get('/status', requireAuth, roomController.roomStatus);
 
+/**
+ * @swagger
+ * /api/room/join:
+ *   post:
+ *     summary: Join an existing game room
+ *     description: Join a room using a room code provided in the request body. The user (identified by JWT token) will be added to the room's player list. Upon successful join, the JWT token will be updated with the room code. Requires authentication via auth_token cookie.
+ *     tags: [Room]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/JoinRoomRequest'
+ *           example:
+ *             roomCode: "123456"
+ *     responses:
+ *       200:
+ *         description: Successfully joined the room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/JoinRoomResponse'
+ *             example:
+ *               success: true
+ *               message: "Joined room successfully"
+ *         headers:
+ *           Set-Cookie:
+ *             description: Updated auth_token with roomCode
+ *             schema:
+ *               type: string
+ *               example: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly
+ *       400:
+ *         description: Bad request - username not found in token, roomCode not provided, or failed to join room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               missingUsername:
+ *                 value:
+ *                   error: "Bad Request"
+ *                   message: "username not found in authentication token"
+ *               missingRoomCode:
+ *                 value:
+ *                   error: "Bad Request"
+ *                   message: "roomCode not found in request"
+ *               failedToJoin:
+ *                 value:
+ *                   success: false
+ *                   message: "Failed to join room"
+ *       401:
+ *         description: Unauthorized - missing or invalid auth token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error while joining room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "An error occurred while trying to join the room"
+ */
+router.post('/join', requireAuth, roomController.joinRoom);
+
 export default router;

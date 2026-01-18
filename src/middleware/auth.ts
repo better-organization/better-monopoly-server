@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { tokenUtil, ITokenPayload } from '../utils/TokenUtil';
 import { cookieUtil } from '../utils/cookieUtil';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 // Extend Express Request to include user data
 declare module 'express-serve-static-core' {
@@ -21,8 +22,8 @@ export const requireAuth = (
 
     if (!token) {
       res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authentication token is required',
+        success: false,
+        message: RESPONSE_MESSAGES.AUTH_TOKEN_REQUIRED,
       });
       return;
     }
@@ -35,23 +36,23 @@ export const requireAuth = (
 
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Token has expired',
+        success: false,
+        message: RESPONSE_MESSAGES.TOKEN_EXPIRED,
       });
       return;
     }
 
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid token',
+        success: false,
+        message: RESPONSE_MESSAGES.INVALID_TOKEN,
       });
       return;
     }
 
     res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Error verifying authentication token',
+      success: false,
+      message: RESPONSE_MESSAGES.TOKEN_VERIFICATION_ERROR,
     });
   }
 };

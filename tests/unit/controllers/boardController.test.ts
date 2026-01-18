@@ -48,9 +48,11 @@ describe('BoardController', () => {
 
       expect(jsonMock).toHaveBeenCalled();
       const result = jsonMock.mock.calls[0][0];
-      expect(result).toHaveProperty('id');
-      expect(result.id).toBe('european_football_club_giants');
-      expect(result).toHaveProperty('cells');
+      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('data');
+      expect(result.data).toHaveProperty('id');
+      expect(result.data.id).toBe('european_football_club_giants');
+      expect(result.data).toHaveProperty('cells');
     });
 
     it('should return 400 for missing boardId parameter', async () => {
@@ -67,7 +69,8 @@ describe('BoardController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       const result = jsonMock.mock.calls[0][0];
-      expect(result.error).toBe('MISSING_PARAMETERS');
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Board ID and version are required');
     });
 
     it('should return 400 for missing version parameter', async () => {
@@ -84,7 +87,8 @@ describe('BoardController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(400);
       const result = jsonMock.mock.calls[0][0];
-      expect(result.error).toBe('MISSING_PARAMETERS');
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Board ID and version are required');
     });
 
     it('should return 400 for both missing parameters', async () => {
@@ -117,7 +121,8 @@ describe('BoardController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(404);
       const result = jsonMock.mock.calls[0][0];
-      expect(result.error).toBe('BOARD_NOT_FOUND');
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Board not found');
     });
 
     it('should return 404 for non-existent version', async () => {
@@ -157,7 +162,8 @@ describe('BoardController', () => {
 
       expect(statusMock).toHaveBeenCalledWith(500);
       const result = jsonMock.mock.calls[0][0];
-      expect(result.error).toBe('INTERNAL_SERVER_ERROR');
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('An error occurred while fetching board layout');
     });
 
     it('should validate board exists in response', async () => {
@@ -174,8 +180,8 @@ describe('BoardController', () => {
       );
 
       const result = jsonMock.mock.calls[0][0];
-      expect(result).toHaveProperty('cells');
-      expect(Array.isArray(result.cells)).toBe(true);
+      expect(result.data).toHaveProperty('cells');
+      expect(Array.isArray(result.data.cells)).toBe(true);
     });
 
     it('should include board metadata in response', async () => {
@@ -192,10 +198,10 @@ describe('BoardController', () => {
       );
 
       const result = jsonMock.mock.calls[0][0];
-      expect(result).toHaveProperty('edition');
-      expect(result).toHaveProperty('currency');
-      expect(result).toHaveProperty('terms');
-      expect(result.terms).toHaveProperty('player');
+      expect(result.data).toHaveProperty('edition');
+      expect(result.data).toHaveProperty('currency');
+      expect(result.data).toHaveProperty('terms');
+      expect(result.data.terms).toHaveProperty('player');
     });
 
     it('should return flattened cells with merged properties', async () => {
@@ -231,9 +237,9 @@ describe('BoardController', () => {
       );
 
       const result = jsonMock.mock.calls[0][0];
-      expect(result.cells.length).toBeGreaterThan(0);
+      expect(result.data.cells.length).toBeGreaterThan(0);
       // Verify cells don't have nested detail objects
-      const cell = result.cells[0];
+      const cell = result.data.cells[0];
       expect(cell.special_details).toBeUndefined();
       expect(cell.property_details).toBeUndefined();
     });
