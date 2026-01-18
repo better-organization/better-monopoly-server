@@ -39,11 +39,13 @@ export const RESPONSE_MESSAGES = {
   VALIDATION_SERVICE_ERROR: 'An error occurred during validation',
   REGISTRATION_SERVICE_ERROR: 'An error occurred during registration',
   LOGIN_SERVICE_ERROR: 'An error occurred during login',
-  USER_REGISTRATION_SUCCESS: 'User registered successfully. Please login to continue.',
+  USER_REGISTRATION_SUCCESS:
+    'User registered successfully. Please login to continue.',
 
   // Room errors
   REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN: 'Required Property not found in token',
-  REQUIRED_PROPERTY_NOT_FOUND_IN_REQUEST: 'Required Property not found in request',
+  REQUIRED_PROPERTY_NOT_FOUND_IN_REQUEST:
+    'Required Property not found in request',
   ROOM_NOT_FOUND: 'Room not found',
   ROOM_CREATION_FAILED: 'Failed to create room',
   ROOM_CREATED_SUCCESSFULLY: 'Room created successfully',

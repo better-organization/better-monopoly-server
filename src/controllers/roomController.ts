@@ -45,7 +45,7 @@ export class RoomController {
     res.status(201).json({
       success: true,
       message: RESPONSE_MESSAGES.ROOM_CREATED_SUCCESSFULLY,
-      data: { roomCode: room.roomCode},
+      data: { roomCode: room.roomCode },
     });
   }
 

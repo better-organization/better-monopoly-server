@@ -26,7 +26,9 @@ export const userIdExists = async (
 
     res.status(statusCode).json({
       success: result.success,
-      message: result.success ? RESPONSE_MESSAGES.USERID_AVAILABLE : result.error,
+      message: result.success
+        ? RESPONSE_MESSAGES.USERID_AVAILABLE
+        : result.error,
     });
   } catch (error) {
     console.error('UserIdExists error:', error);
@@ -93,7 +95,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Success response
     res.status(statusCode).json({
       success: result.success,
-      message: result.success ? RESPONSE_MESSAGES.LOGIN_SUCCESSFUL : result.error,
+      message: result.success
+        ? RESPONSE_MESSAGES.LOGIN_SUCCESSFUL
+        : result.error,
     });
   } catch (error) {
     console.error('Login error:', error);
