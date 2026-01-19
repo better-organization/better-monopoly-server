@@ -106,12 +106,12 @@ describe('Room Routes', () => {
       expect(createResponse.status).toBe(201);
 
       // Get updated cookie with roomId
-      const updatedCookies = getCookies(createResponse.headers);
+      const newCookies = getCookies(createResponse.headers);
 
       // Check room status
       const statusResponse = await request(app)
         .get('/api/room/status')
-        .set('Cookie', updatedCookies)
+        .set('Cookie', [...cookies, ...newCookies])
         .send();
 
       expect(statusResponse.status).toBe(200);
@@ -130,12 +130,12 @@ describe('Room Routes', () => {
         .set('Cookie', cookies)
         .send();
 
-      const updatedCookies = getCookies(createResponse.headers);
+      const newCookies = getCookies(createResponse.headers);
 
       // Get room status
       const response = await request(app)
         .get('/api/room/status')
-        .set('Cookie', updatedCookies)
+        .set('Cookie', [...cookies, ...newCookies])
         .send();
 
       const status = response.body.data;
@@ -179,12 +179,12 @@ describe('Room Routes', () => {
         .send();
 
       const roomCode = createResponse.body.data.roomCode;
-      const updatedCookies = getCookies(createResponse.headers);
+      const newCookies = getCookies(createResponse.headers);
 
       // Get status
       const statusResponse = await request(app)
         .get('/api/room/status')
-        .set('Cookie', updatedCookies)
+        .set('Cookie', [...cookies, ...newCookies])
         .send();
 
       expect(statusResponse.status).toBe(200);
@@ -200,11 +200,11 @@ describe('Room Routes', () => {
         .set('Cookie', cookies)
         .send();
 
-      const updatedCookies = getCookies(createResponse.headers);
+      const newCookies = getCookies(createResponse.headers);
 
       const response = await request(app)
         .get('/api/room/status')
-        .set('Cookie', updatedCookies)
+        .set('Cookie', [...cookies, ...newCookies])
         .send();
 
       expect(response.status).toBe(200);
@@ -250,7 +250,7 @@ describe('Room Routes', () => {
         .send();
 
       const roomCode = createResponse.body.data.roomCode;
-      const creatorCookiesUpdated = getCookies(createResponse.headers);
+      const creatorNewCookies = getCookies(createResponse.headers);
 
       // Register and login joiner
       const cookiesJoiner = await registerAndLogin('joiner', 'joinerid');
@@ -266,7 +266,7 @@ describe('Room Routes', () => {
       // Check room status from creator's perspective
       const statusResponse = await request(app)
         .get('/api/room/status')
-        .set('Cookie', creatorCookiesUpdated)
+        .set('Cookie', [...cookies1, ...creatorNewCookies])
         .send();
 
       expect(statusResponse.status).toBe(200);
@@ -298,10 +298,10 @@ describe('Room Routes', () => {
       expect(joinResponse.headers['set-cookie']).toBeDefined();
 
       // Use updated cookie to check room status
-      const updatedCookies = getCookies(joinResponse.headers);
+      const newCookies = getCookies(joinResponse.headers);
       const statusResponse = await request(app)
         .get('/api/room/status')
-        .set('Cookie', updatedCookies)
+        .set('Cookie', [...cookiesJoiner, ...newCookies])
         .send();
 
       expect(statusResponse.status).toBe(200);
@@ -379,7 +379,7 @@ describe('Room Routes', () => {
       // Check room status
       const statusResponse = await request(app)
         .get('/api/room/status')
-        .set('Cookie', hostCookiesUpdated)
+        .set('Cookie', [...cookiesHost, ...hostCookiesUpdated])
         .send();
 
       const status = statusResponse.body.data;
@@ -400,12 +400,12 @@ describe('Room Routes', () => {
         .send();
 
       const roomCode = createResponse.body.roomCode;
-      const updatedCookies1 = getCookies(createResponse.headers);
+      const newCookie = getCookies(createResponse.headers);
 
       // User1 tries to join their own room again
       const joinResponse = await request(app)
         .post('/api/room/join')
-        .set('Cookie', updatedCookies1)
+        .set('Cookie', [...cookies1, ...newCookie])
         .send({ roomCode });
 
       // Should return success false since user is already in the room
@@ -444,7 +444,7 @@ describe('Room Routes', () => {
       // Step 2: Check status
       const statusResponse = await request(app)
         .get('/api/room/status')
-        .set('Cookie', updatedCookies)
+        .set('Cookie', [...cookies, ...updatedCookies])
         .send();
 
       expect(statusResponse.status).toBe(200);
@@ -470,16 +470,18 @@ describe('Room Routes', () => {
 
       expect(createA.body.data.roomCode).not.toBe(createB.body.data.roomCode);
 
+      const newCookieA = getCookies(createA.headers);
       // Check status A
       const statusA = await request(app)
         .get('/api/room/status')
-        .set('Cookie', getCookies(createA.headers))
+        .set('Cookie', [...cookiesA, ...newCookieA])
         .send();
 
+      const newCookieB = getCookies(createB.headers);
       // Check status B
       const statusB = await request(app)
         .get('/api/room/status')
-        .set('Cookie', getCookies(createB.headers))
+        .set('Cookie', [...cookiesB, ...newCookieB])
         .send();
 
       const statusOfA = statusA.body.data;

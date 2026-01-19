@@ -36,11 +36,8 @@ export class RoomController {
       return;
     }
 
-    const currentToken = cookieUtil.getCookie(req, 'auth_token');
-    if (currentToken) {
-      const newToken = tokenUtil.updateRoomCode(currentToken, room.roomCode);
-      cookieUtil.setCookie(res, 'auth_token', newToken, 24);
-    }
+    const newToken = tokenUtil.parseGameToken(room.roomCode, null);
+    cookieUtil.setCookie(res, 'game_token', newToken, 24);
 
     res.status(201).json({
       success: true,
@@ -116,11 +113,8 @@ export class RoomController {
         : RESPONSE_MESSAGES.ROOM_JOIN_FAILED;
 
       if (success) {
-        const currentToken = cookieUtil.getCookie(req, 'auth_token');
-        if (currentToken) {
-          const newToken = tokenUtil.updateRoomCode(currentToken, roomCode);
-          cookieUtil.setCookie(res, 'auth_token', newToken, 24);
-        }
+        const newToken = tokenUtil.parseGameToken(roomCode, null);
+        cookieUtil.setCookie(res, 'game_token', newToken, 24);
       }
 
       res.status(statusCode).json({ success, message });

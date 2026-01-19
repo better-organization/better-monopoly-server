@@ -1,44 +1,44 @@
 import jwt from 'jsonwebtoken';
 
-export interface ITokenPayload {
+export interface IAuthTokenPayload {
   userId: string;
   username: string;
-  roomCode: string | null;
+}
+
+export interface IGameTokenPayload {
+  roomCode: string;
   gameId: string | null;
 }
 
-export class tokenUtil {
-  private static parse(userId: string, username: string) {
-    return { userId, username, gameId: null, roomCode: null };
-  }
+export interface IUserTokenPayload {
+  userId: string;
+  username: string;
+  roomCode?: string;
+  gameId?: string | null;
+}
 
-  static generateToken = (userId: string, username: string): string => {
+export class tokenUtil {
+  static generateAuthToken = (userId: string, username: string): string => {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
     const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
-    return jwt.sign(tokenUtil.parse(userId, username), JWT_SECRET, {
+    return jwt.sign({ userId, username }, JWT_SECRET, {
       expiresIn: JWT_EXPIRE,
     } as jwt.SignOptions);
   };
 
-  static updateRoomCode = (token: string, roomId: string): string => {
+  static parseGameToken = (roomCode: string, gameId: string | null): string => {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
-    const decoded = jwt.verify(token, JWT_SECRET) as ITokenPayload;
-    const newPayload = {
-      userId: decoded.userId,
-      username: decoded.username,
-      gameId: decoded.gameId,
-      roomCode: roomId,
-    };
-    return jwt.sign(newPayload, JWT_SECRET, {
-      expiresIn: process.env['JWT_EXPIRE'] || '30d',
+    const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
+    return jwt.sign({ roomCode, gameId }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRE,
     } as jwt.SignOptions);
   };
 
-  static verifyToken = (token: string): ITokenPayload => {
+  static verifyToken = <T>(token: string): T => {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
-    return jwt.verify(token, JWT_SECRET) as ITokenPayload;
+    return jwt.verify(token, JWT_SECRET) as T;
   };
 }

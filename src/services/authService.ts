@@ -145,7 +145,7 @@ export class AuthService {
         };
       }
 
-      const token = tokenUtil.generateToken(user.userId, user.username);
+      const token = tokenUtil.generateAuthToken(user.userId, user.username);
 
       return {
         success: true,

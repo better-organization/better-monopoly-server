@@ -1,13 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { tokenUtil, ITokenPayload } from '../utils/TokenUtil';
+import {
+  tokenUtil,
+  IAuthTokenPayload,
+  IGameTokenPayload,
+  IUserTokenPayload,
+} from '../utils/TokenUtil';
 import { cookieUtil } from '../utils/cookieUtil';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 // Extend Express Request to include user data
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: ITokenPayload;
+    user?: IUserTokenPayload;
   }
 }
 
@@ -18,9 +23,12 @@ export const requireAuth = (
   next: NextFunction
 ): void => {
   try {
-    const token = cookieUtil.getCookie(req, 'auth_token');
+    const auth_token = cookieUtil.getCookie(req, 'auth_token');
+    const game_token = cookieUtil.getCookie(req, 'game_token');
+    console.log('Auth Token:', auth_token);
+    console.log('Game Token:', game_token);
 
-    if (!token) {
+    if (!auth_token) {
       res.status(401).json({
         success: false,
         message: RESPONSE_MESSAGES.AUTH_TOKEN_REQUIRED,
@@ -28,7 +36,14 @@ export const requireAuth = (
       return;
     }
 
-    req.user = tokenUtil.verifyToken(token);
+    req.user = tokenUtil.verifyToken<IAuthTokenPayload>(auth_token);
+
+    if (game_token) {
+      req.user = {
+        ...req.user,
+        ...tokenUtil.verifyToken<IGameTokenPayload>(game_token),
+      };
+    }
 
     next();
   } catch (error) {
