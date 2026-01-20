@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { RoomController } from '../../../src/controllers/roomController';
 import { RoomService } from '../../../src/services/roomService';
-import { tokenUtil, ITokenPayload } from '../../../src/utils/TokenUtil';
+import { tokenUtil, IUserTokenPayload } from '../../../src/utils/TokenUtil';
 import { cookieUtil } from '../../../src/utils/cookieUtil';
 
 // Mock dependencies
@@ -11,7 +11,7 @@ jest.mock('../../../src/utils/cookieUtil');
 
 // Extend Request type to include user
 interface AuthenticatedRequest extends Request {
-  user?: ITokenPayload;
+  user?: IUserTokenPayload;
 }
 
 describe('RoomController', () => {
@@ -54,8 +54,6 @@ describe('RoomController', () => {
       user: {
         username: 'testUser',
         userId: 'user-123',
-        roomCode: null,
-        gameId: null,
       },
       cookies: {},
     } as Partial<AuthenticatedRequest>;
@@ -71,7 +69,7 @@ describe('RoomController', () => {
 
       mockRoomService.createRoom = jest.fn().mockReturnValue(mockRoomInfo);
       (cookieUtil.getCookie as jest.Mock).mockReturnValue('mock-token');
-      (tokenUtil.updateRoomCode as jest.Mock).mockReturnValue('updated-token');
+      (tokenUtil.parseGameToken as jest.Mock).mockReturnValue('updated-token');
 
       roomController.createRoom(
         mockRequest as Request,
@@ -107,8 +105,6 @@ describe('RoomController', () => {
       mockRequest.user = {
         username: 'user-123',
         userId: '',
-        roomCode: null,
-        gameId: null,
       };
 
       roomController.createRoom(
@@ -146,8 +142,8 @@ describe('RoomController', () => {
       };
 
       mockRoomService.createRoom = jest.fn().mockReturnValue(mockRoomInfo);
-      (cookieUtil.getCookie as jest.Mock).mockReturnValue('existing-token');
-      (tokenUtil.updateRoomCode as jest.Mock).mockReturnValue('updated-token');
+      (cookieUtil.getCookie as jest.Mock).mockReturnValue('auth-token');
+      (tokenUtil.parseGameToken as jest.Mock).mockReturnValue('game-token');
       (cookieUtil.setCookie as jest.Mock).mockImplementation(() => {});
 
       roomController.createRoom(
@@ -155,18 +151,11 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(cookieUtil.getCookie).toHaveBeenCalledWith(
-        mockRequest,
-        'auth_token'
-      );
-      expect(tokenUtil.updateRoomCode).toHaveBeenCalledWith(
-        'existing-token',
-        'ABC123'
-      );
+      expect(tokenUtil.parseGameToken).toHaveBeenCalledWith('ABC123');
       expect(cookieUtil.setCookie).toHaveBeenCalledWith(
         mockResponse,
-        'auth_token',
-        'updated-token',
+        'game_token',
+        'game-token',
         24
       );
     });
@@ -179,7 +168,7 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(tokenUtil.updateRoomCode).not.toHaveBeenCalled();
+      expect(tokenUtil.parseGameToken).not.toHaveBeenCalled();
       expect(cookieUtil.setCookie).not.toHaveBeenCalled();
     });
   });
@@ -190,7 +179,6 @@ describe('RoomController', () => {
         username: 'testUser',
         userId: 'user-123',
         roomCode: 'ABC123',
-        gameId: null,
       };
     });
 
@@ -222,7 +210,6 @@ describe('RoomController', () => {
         username: 'UserId',
         userId: '',
         roomCode: 'ABC123',
-        gameId: null,
       };
 
       roomController.roomStatus(
@@ -242,8 +229,6 @@ describe('RoomController', () => {
       mockRequest.user = {
         username: 'testUser',
         userId: 'user-123',
-        roomCode: null,
-        gameId: null,
       };
 
       roomController.roomStatus(
@@ -264,7 +249,6 @@ describe('RoomController', () => {
         username: 'testUser',
         userId: 'user-123',
         roomCode: '',
-        gameId: null,
       };
 
       roomController.roomStatus(
@@ -330,8 +314,6 @@ describe('RoomController', () => {
       mockRequest.user = {
         username: 'testUser',
         userId: 'user-123',
-        roomCode: null,
-        gameId: null,
       };
 
       roomController.joinRoom(
@@ -351,7 +333,6 @@ describe('RoomController', () => {
         username: 'testUser',
         userId: 'user-123',
         roomCode: '',
-        gameId: null,
       };
 
       roomController.joinRoom(
@@ -370,8 +351,6 @@ describe('RoomController', () => {
       mockRequest.user = {
         username: 'testUser',
         userId: 'user-123',
-        roomCode: null,
-        gameId: null,
       };
       mockRequest.body = {
         roomCode: 'ABC123',
@@ -396,8 +375,6 @@ describe('RoomController', () => {
       mockRequest.user = {
         username: 'testUser',
         userId: 'user-123',
-        roomCode: null,
-        gameId: null,
       };
       mockRequest.body = {
         roomCode: 'ABC123',
@@ -422,8 +399,6 @@ describe('RoomController', () => {
       mockRequest.user = {
         username: 'testUser',
         userId: 'user-123',
-        roomCode: null,
-        gameId: null,
       };
 
       mockRequest.body = {
