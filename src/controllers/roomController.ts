@@ -36,7 +36,7 @@ export class RoomController {
       return;
     }
 
-    const newToken = tokenUtil.parseGameToken(room.roomCode, null);
+    const newToken = tokenUtil.parseGameToken(room.roomCode);
     cookieUtil.setCookie(res, 'game_token', newToken, 24);
 
     res.status(201).json({
@@ -113,7 +113,7 @@ export class RoomController {
         : RESPONSE_MESSAGES.ROOM_JOIN_FAILED;
 
       if (success) {
-        const newToken = tokenUtil.parseGameToken(roomCode, null);
+        const newToken = tokenUtil.parseGameToken(roomCode);
         cookieUtil.setCookie(res, 'game_token', newToken, 24);
       }
 

@@ -52,11 +52,10 @@ describe('Token Model', () => {
     it('should create game token with roomCode', () => {
       const newRoomCode = 'room-456';
 
-      const gameToken = tokenUtil.parseGameToken(newRoomCode, null);
+      const gameToken = tokenUtil.parseGameToken(newRoomCode);
       const decoded = jwt.verify(gameToken, JWT_SECRET) as IGameTokenPayload;
 
       expect(decoded.roomCode).toBe(newRoomCode);
-      expect(decoded.gameId).toBeNull();
     });
   });
 
@@ -85,7 +84,6 @@ describe('Token Model', () => {
           userId: testUserId,
           username: testUsername,
           roomId: null,
-          gameId: null,
         },
         JWT_SECRET,
         { expiresIn: '0s' }
@@ -103,13 +101,11 @@ describe('Token Model', () => {
   describe('verifyGameToken', () => {
     it('should verify and decode valid game token', () => {
       const roomCode = 'room-789';
-      const gameId = 'game-123';
-      const gameToken = tokenUtil.parseGameToken(roomCode, gameId);
+      const gameToken = tokenUtil.parseGameToken(roomCode);
       const payload = tokenUtil.verifyToken<IGameTokenPayload>(gameToken);
 
       expect(payload).toBeDefined();
       expect(payload.roomCode).toBe(roomCode);
-      expect(payload.gameId).toBe(gameId);
     });
 
     it('should throw error for invalid game token', () => {

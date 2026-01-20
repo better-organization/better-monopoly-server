@@ -151,10 +151,7 @@ describe('RoomController', () => {
         mockResponse as Response
       );
 
-      expect(tokenUtil.parseGameToken).toHaveBeenCalledWith(
-        'ABC123',
-        null
-      );
+      expect(tokenUtil.parseGameToken).toHaveBeenCalledWith('ABC123');
       expect(cookieUtil.setCookie).toHaveBeenCalledWith(
         mockResponse,
         'game_token',
@@ -182,7 +179,6 @@ describe('RoomController', () => {
         username: 'testUser',
         userId: 'user-123',
         roomCode: 'ABC123',
-        gameId: null,
       };
     });
 
@@ -214,7 +210,6 @@ describe('RoomController', () => {
         username: 'UserId',
         userId: '',
         roomCode: 'ABC123',
-        gameId: null,
       };
 
       roomController.roomStatus(
@@ -254,7 +249,6 @@ describe('RoomController', () => {
         username: 'testUser',
         userId: 'user-123',
         roomCode: '',
-        gameId: null,
       };
 
       roomController.roomStatus(
@@ -339,7 +333,6 @@ describe('RoomController', () => {
         username: 'testUser',
         userId: 'user-123',
         roomCode: '',
-        gameId: null,
       };
 
       roomController.joinRoom(

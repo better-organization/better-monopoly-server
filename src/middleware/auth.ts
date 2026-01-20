@@ -25,8 +25,6 @@ export const requireAuth = (
   try {
     const auth_token = cookieUtil.getCookie(req, 'auth_token');
     const game_token = cookieUtil.getCookie(req, 'game_token');
-    console.log('Auth Token:', auth_token);
-    console.log('Game Token:', game_token);
 
     if (!auth_token) {
       res.status(401).json({

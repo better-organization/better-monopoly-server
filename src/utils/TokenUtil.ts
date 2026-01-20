@@ -7,7 +7,6 @@ export interface IAuthTokenPayload {
 
 export interface IGameTokenPayload {
   roomCode: string;
-  gameId: string | null;
 }
 
 export interface IUserTokenPayload {
@@ -27,11 +26,11 @@ export class tokenUtil {
     } as jwt.SignOptions);
   };
 
-  static parseGameToken = (roomCode: string, gameId: string | null): string => {
+  static parseGameToken = (roomCode: string): string => {
     const JWT_SECRET =
       process.env['JWT_SECRET'] || 'a-string-secret-at-least-256-bits-long';
     const JWT_EXPIRE = process.env['JWT_EXPIRE'] || '30d';
-    return jwt.sign({ roomCode, gameId }, JWT_SECRET, {
+    return jwt.sign({ roomCode }, JWT_SECRET, {
       expiresIn: JWT_EXPIRE,
     } as jwt.SignOptions);
   };
