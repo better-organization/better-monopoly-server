@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { GameManager } from '../services/gameService';
+import { GameService } from '../services/gameService';
 import { DiceRollRequest, DiceRollData, GameStateResponse } from '../types/game';
 import { ResponseType } from '../types/response';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
@@ -21,8 +21,8 @@ export class GameController {
         return;
       }
 
-      const gameManager = GameManager.getInstance();
-      const game = gameManager.getGame(roomId);
+      const gameService = GameService.getInstance();
+      const game = gameService.getGame(roomId);
 
       if (!game) {
         res.status(404).json({
@@ -67,8 +67,8 @@ export class GameController {
 
       console.log(`Rolling dice for room: ${roomId}, player: ${playerId}`);
 
-      const gameManager = GameManager.getInstance();
-      const game = gameManager.getGame(roomId);
+      const gameService = GameService.getInstance();
+      const game = gameService.getGame(roomId);
 
       if (!game) {
         res.status(404).json({

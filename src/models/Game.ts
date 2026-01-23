@@ -1,13 +1,10 @@
-// Game Model - In-Memory Storage
-// Simple interfaces for game state management
+// Game Model
+// Game entity class and related interfaces
 
-// Property ownership interface
-export interface PropertyOwnership {
-  house_count: number;
-  is_mortgaged: boolean;
-}
+import { DiceRollResult, GameStateResponse } from '../types/game';
+import { ITimeService, timeService } from '../services/timeService';
 
-// Player interface with new structure
+// Player interface
 export interface IPlayer {
   player_no: number;
   position: number;
@@ -26,20 +23,6 @@ export interface GameSettings {
   hotelCost: number;
 }
 
-// Game interface
-export interface IGame {
-  gameId: string;
-  players: IPlayer[];
-  currentPlayer: number;
-  status: 'waiting' | 'active' | 'finished';
-  winner?: string | undefined;
-  maxPlayers: number;
-  hostId: string;
-  gameSettings: GameSettings;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // Default game settings
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   startingMoney: 1500,
@@ -48,3 +31,91 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   houseCost: 100,
   hotelCost: 200,
 };
+
+/**
+ * Game class - represents a single game instance for a room
+ * Similar to Room class pattern
+ */
+export class Game {
+  public roomId: string;
+  public players: IPlayer[];
+  public currentPlayer: number;
+  public status: 'waiting' | 'active' | 'finished';
+  public winner?: string;
+  public maxPlayers: number;
+  public hostId: string;
+  public gameSettings: GameSettings;
+  public createdAt: Date;
+  public updatedAt: Date;
+
+  constructor(roomId: string, hostId: string, maxPlayers: number = 4) {
+    this.roomId = roomId;
+    this.players = [];
+    this.currentPlayer = 0;
+    this.status = 'waiting';
+    this.maxPlayers = maxPlayers;
+    this.hostId = hostId;
+    this.gameSettings = DEFAULT_GAME_SETTINGS;
+    this.createdAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Get current game state
+   */
+  getState(): GameStateResponse {
+    return {
+      players: this.players.map((player) => ({
+        player_no: player.player_no,
+        position: player.position,
+        player_money: player.player_money,
+        property_owns: player.property_owns,
+        utility_owns: player.utility_owns,
+        transport_owns: player.transport_owns,
+      })),
+    };
+  }
+
+  /**
+   * Update player position
+   */
+  updatePlayerPosition(playerId: number, diceTotal: number): number {
+    const player = this.players.find((p) => p.player_no === playerId);
+    if (!player) throw new Error('Player not found');
+
+    // Calculate new position (wrap around at 40)
+    const newPosition = (player.position + diceTotal) % 40;
+    player.position = newPosition;
+    this.updatedAt = new Date();
+
+    return newPosition;
+  }
+
+  /**
+   * Roll dice and update player position
+   */
+  rollDiceAndUpdatePosition(
+    playerId: number,
+    timeServiceInstance: ITimeService = timeService
+  ): DiceRollResult {
+    // Roll dice
+    const dice: [number, number] = [
+      Math.floor(Math.random() * 6) + 1,
+      Math.floor(Math.random() * 6) + 1,
+    ];
+    const total = dice[0] + dice[1];
+    const timestamp = timeServiceInstance.now();
+
+    // Update position
+    const newPosition = this.updatePlayerPosition(playerId, total);
+
+    const diceResult: DiceRollResult = {
+      dice,
+      total,
+      timestamp,
+      newPosition,
+    };
+
+    return diceResult;
+  }
+}
