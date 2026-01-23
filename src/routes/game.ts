@@ -109,6 +109,70 @@ router.post('/roll-dice', GameController.rollDice);
 
 /**
  * @swagger
+ * /api/game/{gameId}/state:
+ *   get:
+ *     summary: Get game state
+ *     description: Retrieve the current state of a game for polling
+ *     tags: [Game]
+ *     parameters:
+ *       - in: path
+ *         name: gameId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Game identifier
+ *         example: "game-123"
+ *     responses:
+ *       200:
+ *         description: Game state retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     players:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           player_no:
+ *                             type: integer
+ *                             example: 1
+ *                           position:
+ *                             type: integer
+ *                             example: 5
+ *                           player_money:
+ *                             type: integer
+ *                             example: 1500
+ *                           property_owns:
+ *                             type: object
+ *                             example: {}
+ *                           utility_owns:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: []
+ *                           transport_owns:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: []
+ *       404:
+ *         description: Game not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:roomId/state', GameController.getGameState);
+
+
+/**
+ * @swagger
  * /api/game/board/{boardId}/version/{version}:
  *   get:
  *     summary: Get board layout
