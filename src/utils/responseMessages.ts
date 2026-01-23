@@ -53,6 +53,12 @@ export const RESPONSE_MESSAGES = {
   ROOM_JOINED_SUCCESSFULLY: 'Joined room successfully',
   ROOM_JOIN_ERROR: 'An error occurred while trying to join the room',
   ROOM_STATUS_RETRIEVED_SUCCESSFULLY: 'Room status retrieved successfully',
+  GAME_STARTED_SUCCESSFULLY: 'Game started successfully',
+  NOT_ENOUGH_PLAYERS: 'Not enough players to start the game',
+  GAME_ALREADY_STARTED: 'Game has already started',
+  NOT_ROOM_HOST: 'Only the room host can start the game',
+  GAME_START_ERROR: 'An error occurred while starting the game',
+  ROOM_NOT_FOUND_FOR_START: 'Room not found',
 
   // Game controller errors
   ROLL_DICE_ERROR: 'An error occurred while rolling dice',
@@ -71,3 +77,7 @@ export const RESPONSE_MESSAGES = {
   // General errors
   INTERNAL_SERVER_ERROR: 'Internal Server Error',
 } as const;
+
+export const getMinPlayersMessage = (minPlayers: number): string => {
+  return `Not enough players to start the game. Minimum ${minPlayers} players required`;
+};

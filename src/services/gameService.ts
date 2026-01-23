@@ -3,6 +3,7 @@
 
 import { DiceRollResult } from '../types/game';
 import { ITimeService, timeService } from './timeService';
+import { randomUUID } from 'node:crypto';
 
 export interface Player {
   id: string;
@@ -42,10 +43,26 @@ export interface GameMove {
 }
 
 export class GameService {
-  // TODO: Implement game creation
-  static async createGame(_hostId: string): Promise<Game> {
-    console.log('createGame called with:', _hostId);
-    return {} as Game;
+  private static games: Map<string, any> = new Map();
+
+  // Implement game creation
+  static async createGame(playerIds: string[]) {
+    const gameId = randomUUID();
+
+    // Initialize players with starting money
+    const players = playerIds;
+    // Initialize board
+    // Create game object
+    const game = {
+      id: gameId,
+      players,
+    };
+
+    // Store game in memory
+    this.games.set(gameId, game);
+
+    console.log('Game created:', gameId, 'with players:', playerIds);
+    return game;
   }
 
   // TODO: Implement player joining
