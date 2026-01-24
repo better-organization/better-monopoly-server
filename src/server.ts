@@ -56,7 +56,8 @@ app.use(
 );
 
 // Routes
-app.use('/api/health', healthRoutes)
+app
+  .use('/api/health', healthRoutes)
   .use('/api/auth', authRoutes)
   .use('/api/game', gameRoutes)
   .use('/api/room', roomRoutes)

@@ -77,7 +77,7 @@ export class RoomService {
       return {
         success: false,
         message: RESPONSE_MESSAGES.ROOM_NOT_FOUND,
-        errorType: errorType.NOT_FOUND
+        errorType: errorType.NOT_FOUND,
       };
     }
     // Validate user is the host (first player)
@@ -86,7 +86,7 @@ export class RoomService {
       return {
         success: false,
         message: RESPONSE_MESSAGES.NOT_ROOM_HOST,
-        errorType: errorType.FORBIDDEN
+        errorType: errorType.FORBIDDEN,
       };
     }
     // Check room state
@@ -94,7 +94,7 @@ export class RoomService {
       return {
         success: false,
         message: RESPONSE_MESSAGES.GAME_ALREADY_STARTED,
-        errorType: errorType.BAD_REQUEST
+        errorType: errorType.BAD_REQUEST,
       };
     }
     // Check minimum players
@@ -102,7 +102,7 @@ export class RoomService {
       return {
         success: false,
         message: RESPONSE_MESSAGES.NOT_ENOUGH_PLAYERS,
-        errorType: errorType.BAD_REQUEST
+        errorType: errorType.BAD_REQUEST,
       };
     }
     return null;

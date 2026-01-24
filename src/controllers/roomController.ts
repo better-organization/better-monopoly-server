@@ -153,8 +153,12 @@ export class RoomController {
       const result = await this.roomService.startGame(roomCode, userId);
 
       if (!result.success) {
-        const statusCode = result.errorType === errorType.NOT_FOUND ? 404
-          : (result.errorType === errorType.FORBIDDEN ? 403 : 400);
+        const statusCode =
+          result.errorType === errorType.NOT_FOUND
+            ? 404
+            : result.errorType === errorType.FORBIDDEN
+              ? 403
+              : 400;
 
         res.status(statusCode).json({
           success: false,
