@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { RoomController } from '../../../src/controllers/roomController';
+import { errorType, RoomController } from '../../../src/controllers/roomController';
 import { RoomService } from '../../../src/services/roomService';
 import { tokenUtil, IUserTokenPayload } from '../../../src/utils/TokenUtil';
 import { cookieUtil } from '../../../src/utils/cookieUtil';
@@ -32,6 +32,8 @@ describe('RoomController', () => {
       getRoom: jest.fn(),
       getRoomById: jest.fn(),
       clearStorage: jest.fn(),
+      joinRoom: jest.fn(),
+      startGame: jest.fn(),
     } as unknown as jest.Mocked<RoomService>;
 
     // Mock getInstance to return our mock service
@@ -419,6 +421,257 @@ describe('RoomController', () => {
       expect(jsonMock).toHaveBeenCalledWith({
         success: false,
         message: 'An error occurred while trying to join the room',
+      });
+    });
+  });
+
+  describe('startGame', () => {
+    beforeEach(() => {
+      mockRequest.user = {
+        username: 'testUser',
+        userId: 'user-123',
+        roomCode: 'ABC123',
+      };
+    });
+
+    it('should start game successfully when all validations pass', async () => {
+      const mockStartGameResult = {
+        success: true,
+        message: 'Game started successfully',
+        gameId: 'game-uuid-456',
+      };
+
+      mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: true,
+        message: 'Game started successfully',
+      });
+    });
+
+    it('should return 400 when userId is missing in token', async () => {
+      mockRequest.user = {
+        username: 'testUser',
+        userId: '',
+        roomCode: 'ABC123',
+      };
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Required Property not found in token',
+      });
+      expect(mockRoomService.startGame).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when roomCode is missing in token', async () => {
+      mockRequest.user = {
+        username: 'testUser',
+        userId: 'user-123',
+        roomCode: '',
+      };
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Required Property not found in token',
+      });
+      expect(mockRoomService.startGame).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when both userId and roomCode are missing', async () => {
+      mockRequest.user = {
+        username: 'testUser',
+        userId: '',
+        roomCode: '',
+      };
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Required Property not found in token',
+      });
+      expect(mockRoomService.startGame).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when user object is undefined', async () => {
+      mockRequest = {};
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Required Property not found in token',
+      });
+      expect(mockRoomService.startGame).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 when room is not found', async () => {
+      const mockStartGameResult = {
+        success: false,
+        message: 'Room not found',
+        errorType: errorType.NOT_FOUND,
+      };
+
+      mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Room not found',
+      });
+    });
+
+    it('should return 403 when user is not the room host', async () => {
+      const mockStartGameResult = {
+        success: false,
+        message: 'Only the room host can start the game',
+        errorType: errorType.FORBIDDEN,
+      };
+
+      mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Only the room host can start the game',
+      });
+    });
+
+    it('should return 400 when game has already started', async () => {
+      const mockStartGameResult = {
+        success: false,
+        message: 'Game has already started',
+        errorType: errorType.BAD_REQUEST
+      };
+
+      mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Game has already started',
+      });
+    });
+
+    it('should return 400 when not enough players are in the room', async () => {
+      const mockStartGameResult = {
+        success: false,
+        message: 'Not enough players to start the game',
+        errorType: errorType.BAD_REQUEST
+      };
+
+      mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Not enough players to start the game',
+      });
+    });
+
+    it('should return 500 when an unexpected error occurs', async () => {
+      mockRoomService.startGame = jest.fn().mockRejectedValue(new Error('Database error'));
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'An error occurred while starting the game',
+      });
+    });
+
+    it('should return 500 when service throws an exception', async () => {
+      mockRoomService.startGame = jest.fn().mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'An error occurred while starting the game',
+      });
+    });
+
+    it('should handle generic error messages with 400 status', async () => {
+      const mockStartGameResult = {
+        success: false,
+        message: 'Some other validation error',
+      };
+
+      mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
+
+      await roomController.startGame(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockRoomService.startGame).toHaveBeenCalledWith('ABC123', 'user-123');
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        success: false,
+        message: 'Some other validation error',
       });
     });
   });

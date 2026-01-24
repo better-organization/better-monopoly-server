@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../../../src/server';
 import { User } from '../../../src/models/User';
 import { RoomService } from '../../../src/services/roomService';
+import { GAME_CONSTANTS } from '../../../src/config/gameConstants';
 
 describe('Room Routes', () => {
   // Helper function to extract cookies from response headers
@@ -30,6 +31,7 @@ describe('Room Routes', () => {
 
   beforeEach(async () => {
     // Clear user storage before each test
+    jest.replaceProperty(GAME_CONSTANTS, 'MAX_PLAYERS', 4);
     await User.deleteMany();
     // Clear room storage before each test
     RoomService.getInstance().clearStorage();
@@ -493,6 +495,191 @@ describe('Room Routes', () => {
     });
   });
 
+  describe('POST /api/room/start', () => {
+    it('should start the game successfully when host has minimum players', async () => {
+      // Create a room with host
+      const cookiesHost = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesHost)
+        .send();
+
+      const roomCode = createResponse.body.data.roomCode;
+      const hostCookiesUpdated = getCookies(createResponse.headers);
+
+      // Add another player to meet minimum requirement
+      const cookiesPlayer = await registerAndLogin('player1', 'player1id');
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer)
+        .send({ roomCode });
+
+      // Host starts the game
+      const startResponse = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookiesHost, ...hostCookiesUpdated])
+        .send();
+
+      expect(startResponse.status).toBe(200);
+      expect(startResponse.body).toHaveProperty('success', true);
+      expect(startResponse.body).toHaveProperty('message', 'Game started successfully');
+    });
+
+    it('should return 400 when user has no roomCode in token', async () => {
+      const cookies = await registerAndLogin('testUser', 'testuser123');
+
+      // Try to start without being in a room
+      const response = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', cookies)
+        .send();
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Required Property not found in token');
+    });
+
+    it('should return 404 when room does not exist', async () => {
+      // Create a room
+      const cookies = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookies)
+        .send();
+
+      const hostCookiesUpdated = getCookies(createResponse.headers);
+
+      // Clear room storage to simulate non-existent room
+      RoomService.getInstance().clearStorage();
+
+      // Try to start the game
+      const startResponse = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookies, ...hostCookiesUpdated])
+        .send();
+
+      expect(startResponse.status).toBe(404);
+      expect(startResponse.body.success).toBe(false);
+      expect(startResponse.body.message).toContain('not found');
+    });
+
+    it('should return 403 when non-host tries to start the game', async () => {
+      // Create a room with host
+      const cookiesHost = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesHost)
+        .send();
+
+      const roomCode = createResponse.body.data.roomCode;
+
+      // Add another player
+      const cookiesPlayer = await registerAndLogin('player1', 'player1id');
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer)
+        .send({ roomCode });
+
+      const playerCookiesUpdated = getCookies(joinResponse.headers);
+
+      // Non-host player tries to start the game
+      const startResponse = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookiesPlayer, ...playerCookiesUpdated])
+        .send();
+
+      expect(startResponse.status).toBe(403);
+      expect(startResponse.body.success).toBe(false);
+      expect(startResponse.body.message).toContain('host');
+    });
+
+    it('should return 400 when there are not enough players', async () => {
+      // Create a room with only host
+      const cookiesHost = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesHost)
+        .send();
+
+      const hostCookiesUpdated = getCookies(createResponse.headers);
+
+      // Try to start with only 1 player (minimum is 2)
+      const startResponse = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookiesHost, ...hostCookiesUpdated])
+        .send();
+
+      expect(startResponse.status).toBe(400);
+      expect(startResponse.body.success).toBe(false);
+      expect(startResponse.body.message).toContain('players');
+    });
+
+    it('should return 400 when game is already started', async () => {
+      // Create a room with host
+      const cookiesHost = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesHost)
+        .send();
+
+      const roomCode = createResponse.body.data.roomCode;
+      const hostCookiesUpdated = getCookies(createResponse.headers);
+
+      // Add another player
+      const cookiesPlayer = await registerAndLogin('player1', 'player1id');
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer)
+        .send({ roomCode });
+
+      // Start the game first time
+      const firstStart = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookiesHost, ...hostCookiesUpdated])
+        .send();
+
+      expect(firstStart.status).toBe(200);
+
+      // Try to start the game again
+      const secondStart = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookiesHost, ...hostCookiesUpdated])
+        .send();
+
+      expect(secondStart.status).toBe(400);
+      expect(secondStart.body.success).toBe(false);
+      expect(secondStart.body.message).toContain('already started');
+    });
+
+    it('should successfully start game with exactly minimum players', async () => {
+      // Create a room with host
+      const cookiesHost = await registerAndLogin('host', 'hostid');
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookiesHost)
+        .send();
+
+      const roomCode = createResponse.body.data.roomCode;
+      const hostCookiesUpdated = getCookies(createResponse.headers);
+
+      // Add exactly 1 more player to reach minimum (2 players)
+      const cookiesPlayer = await registerAndLogin('player1', 'player1id');
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', cookiesPlayer)
+        .send({ roomCode });
+
+      // Start the game
+      const startResponse = await request(app)
+        .post('/api/room/start')
+        .set('Cookie', [...cookiesHost, ...hostCookiesUpdated])
+        .send();
+
+      expect(startResponse.status).toBe(200);
+      expect(startResponse.body.success).toBe(true);
+    });
+  });
+
   describe('Error handling', () => {
     it('should handle invalid routes under /api/room', async () => {
       const response = await request(app)
@@ -515,9 +702,14 @@ describe('Room Routes', () => {
         .post('/api/room/join')
         .send();
 
+      const startResponse = await request(app)
+        .post('/api/room/start')
+        .send();
+
       expect(createResponse.status).toBe(401);
       expect(statusResponse.status).toBe(401);
       expect(joinResponse.status).toBe(401);
+      expect(startResponse.status).toBe(401);
     });
   });
 });
