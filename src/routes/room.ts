@@ -170,4 +170,82 @@ router.get('/status', requireAuth, roomController.roomStatus);
  */
 router.post('/join', requireAuth, roomController.joinRoom);
 
+/**
+ * @swagger
+ * /api/room/start:
+ *   post:
+ *     summary: Start the game in a room
+ *     description: Start the game for all players in the room. Creates a game instance and assigns its ID to the room. Only the room host (first player who created the room) can start the game. Requires minimum number of players to be met. The room is identified from the JWT token via roomCode. Requires authentication via auth_token cookie.
+ *     tags: [Room]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Game started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Game started successfully"
+ *       400:
+ *         description: Bad request - missing token data, not enough players, or game already started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               missingToken:
+ *                 value:
+ *                   success: false
+ *                   message: "Required Property not found in token"
+ *               notEnoughPlayers:
+ *                 value:
+ *                   success: false
+ *                   message: "Not enough players to start the game. Minimum 2 players required"
+ *               alreadyStarted:
+ *                 value:
+ *                   success: false
+ *                   message: "Game has already started"
+ *       401:
+ *         description: Unauthorized - missing or invalid auth token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - user is not the room host
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Only the room host can start the game"
+ *       404:
+ *         description: Room not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Room not found"
+ *       500:
+ *         description: Internal server error while starting game
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "An error occurred while starting the game"
+ */
+router.post('/start', requireAuth, roomController.startGame);
+
 export default router;

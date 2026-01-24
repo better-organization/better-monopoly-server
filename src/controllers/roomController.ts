@@ -4,6 +4,12 @@ import { tokenUtil } from '../utils/TokenUtil';
 import { cookieUtil } from '../utils/cookieUtil';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
+export enum errorType {
+  NOT_FOUND = 'NOT_FOUND',
+  BAD_REQUEST = 'BAD_REQUEST',
+  FORBIDDEN = 'FORBIDDEN',
+}
+
 export class RoomController {
   private roomService: RoomService;
 
@@ -12,6 +18,7 @@ export class RoomController {
     this.createRoom = this.createRoom.bind(this);
     this.roomStatus = this.roomStatus.bind(this);
     this.joinRoom = this.joinRoom.bind(this);
+    this.startGame = this.startGame.bind(this);
   }
 
   createRoom(req: Request, res: Response): void {
@@ -126,6 +133,51 @@ export class RoomController {
         message: RESPONSE_MESSAGES.ROOM_JOIN_ERROR,
       });
       return;
+    }
+  }
+
+  async startGame(req: Request, res: Response): Promise<void> {
+    const roomCode = req.user?.roomCode;
+    const userId = req.user?.userId;
+
+    if (!userId || !roomCode) {
+      console.error(RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_REQUEST);
+      res.status(400).json({
+        success: false,
+        message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
+      });
+      return;
+    }
+
+    try {
+      const result = await this.roomService.startGame(roomCode, userId);
+
+      if (!result.success) {
+        const statusCode =
+          result.errorType === errorType.NOT_FOUND
+            ? 404
+            : result.errorType === errorType.FORBIDDEN
+              ? 403
+              : 400;
+
+        res.status(statusCode).json({
+          success: false,
+          message: result.message,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: RESPONSE_MESSAGES.GAME_STARTED_SUCCESSFULLY,
+      });
+    } catch (error) {
+      console.error('Error starting game:', error);
+
+      res.status(500).json({
+        success: false,
+        message: RESPONSE_MESSAGES.GAME_START_ERROR,
+      });
     }
   }
 }
