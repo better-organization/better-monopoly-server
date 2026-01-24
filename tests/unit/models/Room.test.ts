@@ -2,6 +2,7 @@ import { Room, RoomState } from '../../../src/models/Room';
 import { GAME_CONSTANTS } from '../../../src/config/gameConstants';
 
 describe('Room Model', () => {
+  jest.replaceProperty(GAME_CONSTANTS, 'MAX_PLAYERS', 4);
   describe('constructor', () => {
     it('should create a room with provided roomId and roomCode', () => {
       const roomId = 'room-123';

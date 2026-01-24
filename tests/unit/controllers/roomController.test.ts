@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { RoomController } from '../../../src/controllers/roomController';
+import { errorType, RoomController } from '../../../src/controllers/roomController';
 import { RoomService } from '../../../src/services/roomService';
 import { tokenUtil, IUserTokenPayload } from '../../../src/utils/TokenUtil';
 import { cookieUtil } from '../../../src/utils/cookieUtil';
@@ -536,6 +536,7 @@ describe('RoomController', () => {
       const mockStartGameResult = {
         success: false,
         message: 'Room not found',
+        errorType: errorType.NOT_FOUND,
       };
 
       mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
@@ -557,6 +558,7 @@ describe('RoomController', () => {
       const mockStartGameResult = {
         success: false,
         message: 'Only the room host can start the game',
+        errorType: errorType.FORBIDDEN,
       };
 
       mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
@@ -578,6 +580,7 @@ describe('RoomController', () => {
       const mockStartGameResult = {
         success: false,
         message: 'Game has already started',
+        errorType: errorType.BAD_REQUEST
       };
 
       mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
@@ -598,7 +601,8 @@ describe('RoomController', () => {
     it('should return 400 when not enough players are in the room', async () => {
       const mockStartGameResult = {
         success: false,
-        message: 'Not enough players to start the game. Minimum 2 players required',
+        message: 'Not enough players to start the game',
+        errorType: errorType.BAD_REQUEST
       };
 
       mockRoomService.startGame = jest.fn().mockResolvedValue(mockStartGameResult);
@@ -612,7 +616,7 @@ describe('RoomController', () => {
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
         success: false,
-        message: 'Not enough players to start the game. Minimum 2 players required',
+        message: 'Not enough players to start the game',
       });
     });
 

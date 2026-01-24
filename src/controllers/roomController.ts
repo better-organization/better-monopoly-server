@@ -4,6 +4,12 @@ import { tokenUtil } from '../utils/TokenUtil';
 import { cookieUtil } from '../utils/cookieUtil';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
+export enum errorType {
+  NOT_FOUND = 'NOT_FOUND',
+  BAD_REQUEST = 'BAD_REQUEST',
+  FORBIDDEN = 'FORBIDDEN',
+}
+
 export class RoomController {
   private roomService: RoomService;
 
@@ -135,6 +141,7 @@ export class RoomController {
     const userId = req.user?.userId;
 
     if (!userId || !roomCode) {
+      console.error(RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_REQUEST);
       res.status(400).json({
         success: false,
         message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
@@ -146,14 +153,8 @@ export class RoomController {
       const result = await this.roomService.startGame(roomCode, userId);
 
       if (!result.success) {
-        let statusCode = 400;
-
-        // Determine appropriate status code based on error message
-        if (result.message.includes('not found')) {
-          statusCode = 404;
-        } else if (result.message.includes('host')) {
-          statusCode = 403;
-        }
+        const statusCode = result.errorType === errorType.NOT_FOUND ? 404
+          : (result.errorType === errorType.FORBIDDEN ? 403 : 400);
 
         res.status(statusCode).json({
           success: false,

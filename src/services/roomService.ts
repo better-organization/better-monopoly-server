@@ -2,24 +2,21 @@ import { Room, IRoomInfo, RoomState } from '../models/Room';
 import { randomUUID } from 'node:crypto';
 import { GAME_CONSTANTS } from '../config/gameConstants';
 import { GameService } from './gameService';
-import {
-  RESPONSE_MESSAGES,
-  getMinPlayersMessage,
-} from '../utils/responseMessages';
+import { RESPONSE_MESSAGES } from '../utils/responseMessages';
+import { errorType } from '../controllers/roomController';
 
 export interface StartGameResult {
   success: boolean;
   message: string;
+  errorType?: string;
   gameId?: string;
 }
 
 export class RoomService {
   private static instance: RoomService;
-  private roomsById: Map<string, Room>;
-  private roomsByCode: Map<string, string>;
+  private roomsByCode: Map<string, Room>;
 
   private constructor() {
-    this.roomsById = new Map();
     this.roomsByCode = new Map();
   }
 
@@ -34,7 +31,6 @@ export class RoomService {
   }
 
   clearStorage(): void {
-    this.roomsById.clear();
     this.roomsByCode.clear();
   }
 
@@ -59,33 +55,17 @@ export class RoomService {
     const room = new Room(roomId, roomCode);
     room.addPlayer(userId);
 
-    this.roomsById.set(roomId, room);
-    this.roomsByCode.set(roomCode, roomId);
+    this.roomsByCode.set(roomCode, room);
 
     return room.getRoomInfo();
   }
 
-  getRoomById(roomId: string): IRoomInfo | undefined {
-    return this.roomsById.get(roomId)?.getRoomInfo();
-  }
-
   getRoom(roomCode: string): IRoomInfo | undefined {
-    const roomId = this.roomsByCode.get(roomCode);
-    if (roomId) {
-      return this.getRoomById(roomId);
-    }
-
-    return;
+    return this.roomsByCode.get(roomCode)?.getRoomInfo();
   }
 
   joinRoom(roomCode: string, userId: string) {
-    const roomId = this.roomsByCode.get(roomCode);
-    if (roomId) {
-      const room = this.roomsById.get(roomId);
-      return room?.addPlayer(userId);
-    }
-
-    return false;
+    return Boolean(this.roomsByCode.get(roomCode)?.addPlayer(userId));
   }
 
   private validateStartGame(
@@ -97,41 +77,40 @@ export class RoomService {
       return {
         success: false,
         message: RESPONSE_MESSAGES.ROOM_NOT_FOUND,
+        errorType: errorType.NOT_FOUND
       };
     }
-
     // Validate user is the host (first player)
     const hostId = room.getHostId();
     if (hostId !== userId) {
       return {
         success: false,
         message: RESPONSE_MESSAGES.NOT_ROOM_HOST,
+        errorType: errorType.FORBIDDEN
       };
     }
-
     // Check room state
     if (room.getRoomState() !== RoomState.WAITING) {
       return {
         success: false,
         message: RESPONSE_MESSAGES.GAME_ALREADY_STARTED,
+        errorType: errorType.BAD_REQUEST
       };
     }
-
     // Check minimum players
     if (room.getPlayerCount() < GAME_CONSTANTS.MIN_PLAYERS) {
       return {
         success: false,
-        message: getMinPlayersMessage(GAME_CONSTANTS.MIN_PLAYERS),
+        message: RESPONSE_MESSAGES.NOT_ENOUGH_PLAYERS,
+        errorType: errorType.BAD_REQUEST
       };
     }
-
     return null;
   }
 
   async startGame(roomCode: string, userId: string): Promise<StartGameResult> {
     // Get room by room code
-    const roomId = this.roomsByCode.get(roomCode);
-    const room = roomId ? this.roomsById.get(roomId) : undefined;
+    const room = this.roomsByCode.get(roomCode);
 
     // Validate before proceeding
     const validationError = this.validateStartGame(room, userId);

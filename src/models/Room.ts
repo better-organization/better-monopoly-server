@@ -18,7 +18,7 @@ export interface IRoomInfo {
 export class Room {
   private roomId: string;
   private roomCode: string;
-  private players: Set<string>;
+  private players: Array<string>;
   private maxPlayers: number = GAME_CONSTANTS.MAX_PLAYERS;
   private gameId: string | null = null;
   private roomState: RoomState;
@@ -26,14 +26,21 @@ export class Room {
   constructor(roomId: string, roomCode: string) {
     this.roomId = roomId;
     this.roomCode = roomCode;
-    this.players = new Set<string>();
+    this.players = new Array<string>();
     this.roomState = RoomState.WAITING;
   }
 
   addPlayer(userId: string): boolean {
-    const currentSize = this.players.size;
-    this.players.add(userId);
-    return currentSize + 1 === this.players.size;
+    const currentSize = this.players.length;
+    const isFull = currentSize >= this.maxPlayers;
+    const alreadyExists = this.players.includes(userId);
+
+    if (isFull || alreadyExists) {
+      return false;
+    }
+
+    this.players.push(userId);
+    return true;
   }
 
   setGameId(gameId: string): void {
@@ -55,7 +62,7 @@ export class Room {
   }
 
   getPlayerCount(): number {
-    return this.players.size;
+    return this.players.length;
   }
 
   private getPlayers(): string[] {

@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../../../src/server';
 import { User } from '../../../src/models/User';
 import { RoomService } from '../../../src/services/roomService';
+import { GAME_CONSTANTS } from '../../../src/config/gameConstants';
 
 describe('Room Routes', () => {
   // Helper function to extract cookies from response headers
@@ -30,6 +31,7 @@ describe('Room Routes', () => {
 
   beforeEach(async () => {
     // Clear user storage before each test
+    jest.replaceProperty(GAME_CONSTANTS, 'MAX_PLAYERS', 4);
     await User.deleteMany();
     // Clear room storage before each test
     RoomService.getInstance().clearStorage();

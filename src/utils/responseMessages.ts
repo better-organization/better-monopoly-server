@@ -77,7 +77,3 @@ export const RESPONSE_MESSAGES = {
   // General errors
   INTERNAL_SERVER_ERROR: 'Internal Server Error',
 } as const;
-
-export const getMinPlayersMessage = (minPlayers: number): string => {
-  return `Not enough players to start the game. Minimum ${minPlayers} players required`;
-};

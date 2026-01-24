@@ -10,6 +10,7 @@ describe('RoomService', () => {
   let roomService: RoomService;
 
   beforeEach(() => {
+    jest.replaceProperty(GAME_CONSTANTS, 'MAX_PLAYERS', 4);
     roomService = RoomService.getInstance();
     // Clear storage before each test
     roomService.clearStorage();
@@ -179,37 +180,6 @@ describe('RoomService', () => {
     });
   });
 
-  describe('getRoomById', () => {
-    it('should retrieve room by roomId', () => {
-      const roomInfo = roomService.createRoom('testUser');
-
-      const retrievedRoom = roomService.getRoomById(roomInfo.roomId);
-
-      expect(retrievedRoom).toBeDefined();
-      expect(retrievedRoom?.roomId).toBe(roomInfo.roomId);
-      expect(retrievedRoom?.roomCode).toBe(roomInfo.roomCode);
-    });
-
-    it('should return undefined for non-existent roomId', () => {
-      const retrievedRoom = roomService.getRoomById('non-existent-id');
-
-      expect(retrievedRoom).toBeUndefined();
-    });
-
-    it('should return correct room info for multiple rooms', () => {
-      const room1 = roomService.createRoom('user1');
-      const room2 = roomService.createRoom('user2');
-
-      const retrieved1 = roomService.getRoomById(room1.roomId);
-      const retrieved2 = roomService.getRoomById(room2.roomId);
-
-      expect(retrieved1?.roomId).toBe(room1.roomId);
-      expect(retrieved2?.roomId).toBe(room2.roomId);
-      expect(retrieved1?.players).toEqual(['user1']);
-      expect(retrieved2?.players).toEqual(['user2']);
-    });
-  });
-
   describe('clearStorage', () => {
     it('should clear all rooms from storage', () => {
       const room1 = roomService.createRoom('user1');
@@ -243,7 +213,6 @@ describe('RoomService', () => {
       roomService.clearStorage();
 
       expect(roomService.getRoom(room.roomCode)).toBeUndefined();
-      expect(roomService.getRoomById(room.roomId)).toBeUndefined();
     });
   });
 
@@ -323,7 +292,6 @@ describe('RoomService', () => {
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Not enough players');
-      expect(result.message).toContain(`Minimum ${GAME_CONSTANTS.MIN_PLAYERS} players required`);
       expect(GameService.createGame).not.toHaveBeenCalled();
     });
 

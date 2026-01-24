@@ -1,7 +1,7 @@
 export const GAME_CONSTANTS = {
   // Player limits
-  MIN_PLAYERS: 2,
-  MAX_PLAYERS: 2,
+  MIN_PLAYERS: 2 as number,
+  MAX_PLAYERS: 2 as number,
 
   // Room configuration
   ROOM_CODE_LENGTH: 6,

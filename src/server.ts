@@ -56,16 +56,12 @@ app.use(
 );
 
 // Routes
-app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/game', gameRoutes);
-app.use('/api/room', roomRoutes);
-
-// 404 handler
-app.use(notFoundHandler);
-
-// Error handling middleware
-app.use(errorHandler);
+app.use('/api/health', healthRoutes)
+  .use('/api/auth', authRoutes)
+  .use('/api/game', gameRoutes)
+  .use('/api/room', roomRoutes)
+  .use(notFoundHandler)
+  .use(errorHandler);
 
 const startServer = async () => {
   await connectDB();
