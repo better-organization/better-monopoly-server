@@ -1,38 +1,42 @@
 import { Request, Response } from 'express';
 import { GameService } from '../services/gameService';
-import { DiceRollRequest, DiceRollData, GameStateResponse } from '../types/game';
+import {
+  DiceRollRequest,
+  DiceRollData,
+  GameStateResponse,
+} from '../types/game';
 import { ResponseType } from '../types/response';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 export class GameController {
   /**
-   * GET /api/game/:roomId/state
+   * GET /api/game/state
    * Get game state for polling
+   * Gets roomCode from user token (cookie)
    */
   static getGameState(req: Request, res: Response): void {
     try {
-      const { roomId } = req.params;
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
 
-      if (!roomId) {
+      if (!userId || !roomCode) {
         res.status(400).json({
           success: false,
-          message: 'Room ID is required',
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
         });
         return;
       }
 
       const gameService = GameService.getInstance();
-      const game = gameService.getGame(roomId);
+      const gameState = gameService.getGameState(roomCode);
 
-      if (!game) {
+      if (!gameState) {
         res.status(404).json({
           success: false,
-          message: 'Game not found for the room with ID: ' + roomId,
+          message: 'Game not found for this room',
         });
         return;
       }
-
-      const gameState = game.getState();
 
       const response: ResponseType<GameStateResponse> = {
         success: true,
@@ -52,38 +56,39 @@ export class GameController {
   /**
    * POST /api/game/roll-dice
    * Roll dice for a game and update player position
+   * Gets roomCode from user token (cookie)
    */
   static rollDice(req: Request, res: Response): void {
     try {
-      const { roomId, playerId }: DiceRollRequest = req.body;
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
+      const { playerId }: DiceRollRequest = req.body;
 
-      if (!roomId || !playerId) {
+      if (!userId || !roomCode) {
         res.status(400).json({
           success: false,
-          message: 'Room ID and player Id are required',
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
         });
         return;
       }
 
-      console.log(`Rolling dice for room: ${roomId}, player: ${playerId}`);
+      if (!playerId) {
+        res.status(400).json({
+          success: false,
+          message: 'Player ID is required',
+        });
+        return;
+      }
+
+      console.log(`Rolling dice for room: ${roomCode}, player: ${playerId}`);
 
       const gameService = GameService.getInstance();
-      const game = gameService.getGame(roomId);
-
-      if (!game) {
-        res.status(404).json({
-          success: false,
-          message: 'Game not found for the room with ID: ' + roomId,
-        });
-        return;
-      }
-
-      const diceResult = game.rollDiceAndUpdatePosition(playerId);
+      const diceResult = gameService.rollDice(roomCode, playerId);
 
       if (!diceResult) {
         res.status(404).json({
           success: false,
-          message: 'Player not found in this game',
+          message: 'Game or player not found',
         });
         return;
       }

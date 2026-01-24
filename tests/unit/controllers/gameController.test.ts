@@ -1,112 +1,317 @@
 import { Request, Response } from 'express';
 import { GameController } from '../../../src/controllers/gameController';
 import { GameService } from '../../../src/services/gameService';
+import { IUserTokenPayload } from '../../../src/utils/TokenUtil';
 
-// Mock GameService
+// Mock dependencies
 jest.mock('../../../src/services/gameService');
 
+// Extend Request type to include user
+interface AuthenticatedRequest extends Request {
+    user?: IUserTokenPayload;
+}
+
 describe('GameController', () => {
-    let mockRequest: Partial<Request>;
+    let mockGameService: jest.Mocked<GameService>;
+    let mockRequest: Partial<AuthenticatedRequest>;
     let mockResponse: Partial<Response>;
     let jsonMock: jest.Mock;
     let statusMock: jest.Mock;
 
     beforeEach(() => {
+        // Reset all mocks
+        jest.clearAllMocks();
+
+        // Create mock service instance
+        mockGameService = {
+            getGameState: jest.fn(),
+            rollDice: jest.fn(),
+            getGame: jest.fn(),
+            createGame: jest.fn(),
+            deleteGame: jest.fn(),
+            getAllGames: jest.fn(),
+            clearAllGames: jest.fn(),
+        } as unknown as jest.Mocked<GameService>;
+
+        // Mock getInstance to return our mock service
+        (GameService.getInstance as jest.Mock) = jest
+            .fn()
+            .mockReturnValue(mockGameService);
+
+        // Setup mock response
         jsonMock = jest.fn();
         statusMock = jest.fn().mockReturnValue({ json: jsonMock });
-
-        mockRequest = {
-            body: {},
-        };
 
         mockResponse = {
             status: statusMock,
             json: jsonMock,
         };
 
-        jest.clearAllMocks();
+        // Setup basic mock request with user and roomCode
+        mockRequest = {
+            user: {
+                username: 'testUser',
+                userId: 'user-123',
+                roomCode: 'ABC123',
+            },
+            body: {},
+            params: {},
+        } as Partial<AuthenticatedRequest>;
     });
 
-    describe('rollDice', () => {
-        it('should return 200 with dice roll result', async () => {
-            const mockDiceResult = {
-                dice: [3, 5] as [number, number],
-                total: 8,
-                timestamp: new Date('2026-01-11T13:34:17.000Z'),
+    describe('getGameState', () => {
+        it('should return game state successfully', () => {
+            const mockGameState = {
+                players: [
+                    {
+                        player_no: 1,
+                        position: 5,
+                        player_money: 1500,
+                        property_owns: [],
+                        utility_owns: [],
+                        transport_owns: [],
+                    },
+                    {
+                        player_no: 2,
+                        position: 10,
+                        player_money: 1200,
+                        property_owns: ['property1'],
+                        utility_owns: [],
+                        transport_owns: [],
+                    },
+                ],
             };
 
-            (GameService.rollDice as jest.Mock).mockReturnValue(mockDiceResult);
+            mockGameService.getGameState = jest.fn().mockReturnValue(mockGameState);
 
-            await GameController.rollDice(
+            GameController.getGameState(
                 mockRequest as Request,
                 mockResponse as Response
             );
 
+            expect(mockGameService.getGameState).toHaveBeenCalledWith('ABC123');
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: mockGameState,
+            });
+        });
+
+        it('should return 400 when userId is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: '',
+                roomCode: 'ABC123',
+            };
+
+            GameController.getGameState(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.getGameState).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when roomCode is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: 'user-123',
+            };
+
+            GameController.getGameState(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.getGameState).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when user object is undefined', () => {
+            mockRequest = {};
+
+            GameController.getGameState(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+        });
+
+        it('should return 404 when game is not found', () => {
+            mockGameService.getGameState = jest.fn().mockReturnValue(null);
+
+            GameController.getGameState(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Game not found for this room',
+            });
+        });
+
+        it('should return 500 when an error occurs', () => {
+            mockGameService.getGameState = jest.fn().mockImplementation(() => {
+                throw new Error('Service error');
+            });
+
+            GameController.getGameState(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'An error occurred while retrieving game state',
+            });
+        });
+    });
+
+    describe('rollDice', () => {
+        beforeEach(() => {
+            mockRequest.body = {
+                playerId: 1,
+            };
+        });
+
+        it('should roll dice successfully', () => {
+            const mockDiceResult = {
+                dice: [4, 3] as [number, number],
+                total: 7,
+                timestamp: new Date('2024-01-01T00:00:00Z'),
+                newPosition: 7,
+            };
+
+            mockGameService.rollDice = jest.fn().mockReturnValue(mockDiceResult);
+
+            GameController.rollDice(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(mockGameService.rollDice).toHaveBeenCalledWith('ABC123', 1);
             expect(statusMock).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 success: true,
                 data: {
-                    dice: [3, 5],
-                    total: 8,
-                    timestamp: '2026-01-11T13:34:17.000Z',
+                    dice: [4, 3],
+                    total: 7,
+                    timestamp: '2024-01-01T00:00:00.000Z',
+                    newPosition: 7,
                 },
             });
         });
 
-        it('should call GameService.rollDice', async () => {
-            const mockDiceResult = {
-                dice: [1, 1] as [number, number],
-                total: 2,
-                timestamp: new Date(),
+        it('should return 400 when userId is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: '',
+                roomCode: 'ABC123',
             };
 
-            (GameService.rollDice as jest.Mock).mockReturnValue(mockDiceResult);
-
-            await GameController.rollDice(
+            GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
 
-            expect(GameService.rollDice).toHaveBeenCalledTimes(1);
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.rollDice).not.toHaveBeenCalled();
         });
 
-        it('should handle optional gameId and playerId', async () => {
-            mockRequest.body = {
-                gameId: 'game-123',
-                playerId: 'player-456',
+        it('should return 400 when roomCode is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: 'user-123',
             };
 
-            const mockDiceResult = {
-                dice: [2, 4] as [number, number],
-                total: 6,
-                timestamp: new Date(),
-            };
-
-            (GameService.rollDice as jest.Mock).mockReturnValue(mockDiceResult);
-
-            await GameController.rollDice(
+            GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
 
-            expect(statusMock).toHaveBeenCalledWith(200);
-            expect(jsonMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    success: true,
-                    data: expect.objectContaining({
-                        dice: [2, 4],
-                        total: 6,
-                    }),
-                })
-            );
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.rollDice).not.toHaveBeenCalled();
         });
 
-        it('should handle errors gracefully', async () => {
-            (GameService.rollDice as jest.Mock).mockImplementation(() => {
-                throw new Error('Test error');
+        it('should return 400 when playerId is missing', () => {
+            mockRequest.body = {};
+
+            GameController.rollDice(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Player ID is required',
+            });
+            expect(mockGameService.rollDice).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when user object is undefined', () => {
+            mockRequest = {
+                body: { playerId: 1 },
+            };
+
+            GameController.rollDice(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+        });
+
+        it('should return 404 when game or player not found', () => {
+            mockGameService.rollDice = jest.fn().mockReturnValue(null);
+
+            GameController.rollDice(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Game or player not found',
+            });
+        });
+
+        it('should return 500 when an error occurs', () => {
+            mockGameService.rollDice = jest.fn().mockImplementation(() => {
+                throw new Error('Dice roll error');
             });
 
-            await GameController.rollDice(
+            GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -118,28 +323,56 @@ describe('GameController', () => {
             });
         });
 
-        it('should format timestamp as ISO string', async () => {
-            const testDate = new Date('2026-01-11T18:55:17.123Z');
+        it('should handle different dice values', () => {
             const mockDiceResult = {
                 dice: [6, 6] as [number, number],
                 total: 12,
-                timestamp: testDate,
+                timestamp: new Date('2024-01-01T00:00:00Z'),
+                newPosition: 12,
             };
 
-            (GameService.rollDice as jest.Mock).mockReturnValue(mockDiceResult);
+            mockGameService.rollDice = jest.fn().mockReturnValue(mockDiceResult);
 
-            await GameController.rollDice(
+            GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
 
-            expect(jsonMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    data: expect.objectContaining({
-                        timestamp: '2026-01-11T18:55:17.123Z',
-                    }),
-                })
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    dice: [6, 6],
+                    total: 12,
+                    timestamp: '2024-01-01T00:00:00.000Z',
+                    newPosition: 12,
+                },
+            });
+        });
+
+        it('should handle position wrap-around', () => {
+            const mockDiceResult = {
+                dice: [5, 4] as [number, number],
+                total: 9,
+                timestamp: new Date('2024-01-01T00:00:00Z'),
+                newPosition: 3, // Wrapped from 38 + 9 = 47 % 40 = 7
+            };
+
+            mockGameService.rollDice = jest.fn().mockReturnValue(mockDiceResult);
+
+            GameController.rollDice(
+                mockRequest as Request,
+                mockResponse as Response
             );
+
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    dice: [5, 4],
+                    total: 9,
+                    timestamp: '2024-01-01T00:00:00.000Z',
+                    newPosition: 3,
+                },
+            });
         });
     });
 });

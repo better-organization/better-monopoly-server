@@ -8,7 +8,6 @@ export interface DiceRollResult {
 }
 
 export interface DiceRollRequest {
-  roomId: string;
   playerId: number;
 }
 
@@ -33,4 +32,3 @@ export interface PlayerState {
 export interface GameStateResponse {
   players: PlayerState[];
 }
-

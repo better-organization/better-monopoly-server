@@ -1,11 +1,13 @@
 // Game Service
-// GameManager singleton - manages all game instances
+// GameService singleton - manages all game instances
 // Similar to RoomService pattern
 
 import { Game } from '../models/Game';
+import { DiceRollResult, GameStateResponse } from '../types/game';
+import { RoomService } from './roomService';
 
 /**
- * GameManager - manages all game instances
+ * GameService - manages all game instances
  * Singleton pattern for managing games by roomId
  */
 export class GameService {
@@ -41,6 +43,34 @@ export class GameService {
    */
   getGame(roomId: string): Game | null {
     return this.games.get(roomId) || null;
+  }
+
+  /**
+   * Get game by roomCode (converts roomCode to roomId first)
+   */
+  getGameByRoomCode(roomCode: string): Game | null {
+    const roomService = RoomService.getInstance();
+    const room = roomService.getRoom(roomCode);
+
+    if (!room) return null;
+
+    return this.getGame(room.roomId);
+  }
+
+  /**
+   * Get game state by roomCode
+   */
+  getGameState(roomCode: string): GameStateResponse | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.getState() : null;
+  }
+
+  /**
+   * Roll dice action of a specific game by roomCode
+   */
+  rollDice(roomCode: string, playerId: number): DiceRollResult | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.rollDiceAndUpdatePosition(playerId) : null;
   }
 
   /**

@@ -65,7 +65,7 @@ export class Game {
    */
   getState(): GameStateResponse {
     return {
-      players: this.players.map((player) => ({
+      players: this.players.map(player => ({
         player_no: player.player_no,
         position: player.position,
         player_money: player.player_money,
@@ -80,7 +80,7 @@ export class Game {
    * Update player position
    */
   updatePlayerPosition(playerId: number, diceTotal: number): number {
-    const player = this.players.find((p) => p.player_no === playerId);
+    const player = this.players.find(p => p.player_no === playerId);
     if (!player) throw new Error('Player not found');
 
     // Calculate new position (wrap around at 40)

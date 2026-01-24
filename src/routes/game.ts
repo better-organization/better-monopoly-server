@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { BoardController } from '../controllers/boardController';
 import { GameController } from '../controllers/gameController';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -105,23 +106,17 @@ router.get('/test', (_req: Request, res: Response) => {
  *                   type: string
  *                   example: "An error occurred while rolling dice"
  */
-router.post('/roll-dice', GameController.rollDice);
+router.post('/roll-dice', requireAuth, GameController.rollDice);
 
 /**
  * @swagger
- * /api/game/{gameId}/state:
+ * /api/game/state:
  *   get:
  *     summary: Get game state
- *     description: Retrieve the current state of a game for polling
+ *     description: Retrieve the current state of a game for polling. RoomCode is retrieved from user token (cookie).
  *     tags: [Game]
- *     parameters:
- *       - in: path
- *         name: gameId
- *         required: true
- *         schema:
- *           type: string
- *         description: Game identifier
- *         example: "game-123"
+ *     security:
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Game state retrieved successfully
@@ -151,8 +146,10 @@ router.post('/roll-dice', GameController.rollDice);
  *                             type: integer
  *                             example: 1500
  *                           property_owns:
- *                             type: object
- *                             example: {}
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: []
  *                           utility_owns:
  *                             type: array
  *                             items:
@@ -163,13 +160,14 @@ router.post('/roll-dice', GameController.rollDice);
  *                             items:
  *                               type: string
  *                             example: []
+ *       400:
+ *         description: Missing required properties in token
  *       404:
  *         description: Game not found
  *       500:
  *         description: Internal server error
  */
-router.get('/:roomId/state', GameController.getGameState);
-
+router.get('/state', requireAuth, GameController.getGameState);
 
 /**
  * @swagger
