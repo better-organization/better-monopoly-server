@@ -68,9 +68,9 @@ export class GameService {
   /**
    * Roll dice action of a specific game by roomCode
    */
-  rollDice(roomCode: string, playerId: string): DiceRollResult | null {
+  rollDice(roomCode: string, userId: string): DiceRollResult | null {
     const game = this.getGameByRoomCode(roomCode);
-    return game ? game.rollDiceAndUpdatePosition(playerId) : null;
+    return game ? game.rollDiceAndUpdatePosition(userId) : null;
   }
 
   /**

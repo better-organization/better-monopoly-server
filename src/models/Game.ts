@@ -3,10 +3,11 @@
 
 import { DiceRollResult, GameStateResponse } from '../types/game';
 import { ITimeService, timeService } from '../services/timeService';
+import { randomUUID } from 'node:crypto';
 
 // Player interface
 export interface IPlayer {
-  player_id: string;
+  user_id: string;
   player_turn: number;
   position: number;
   player_money: number;
@@ -38,6 +39,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
  * Similar to Room class pattern
  */
 export class Game {
+  public gameId: string;
   public roomId: string;
   public players: IPlayer[];
   public currentPlayer: number;
@@ -49,19 +51,20 @@ export class Game {
   public createdAt: Date;
   public updatedAt: Date;
 
-  constructor(roomId: string, playerIds: string[]) {
+  constructor(roomId: string, players: string[], gameId: string = randomUUID()) {
+    this.gameId = gameId;
     this.roomId = roomId;
     this.currentPlayer = 0;
     this.status = 'waiting';
-    this.maxPlayers = playerIds.length;
-    this.hostId = playerIds[0] || '';
+    this.maxPlayers = players.length;
+    this.hostId = players[0] || '';
     this.gameSettings = DEFAULT_GAME_SETTINGS;
     this.createdAt = new Date();
     this.updatedAt = new Date();
 
     // Initialize players with starting values
-    this.players = playerIds.map((playerId, index) => ({
-      player_id: playerId,
+    this.players = players.map((userId, index) => ({
+      user_id: userId,
       player_turn: index + 1,
       position: 0,
       player_money: this.gameSettings.startingMoney,
@@ -77,7 +80,7 @@ export class Game {
   getState(): GameStateResponse {
     return {
       players: this.players.map(player => ({
-        player_id: player.player_id,
+        user_id: player.user_id,
         player_turn: player.player_turn,
         position: player.position,
         player_money: player.player_money,
@@ -91,8 +94,8 @@ export class Game {
   /**
    * Update player position
    */
-  updatePlayerPosition(playerId: string, diceTotal: number): number {
-    const player = this.players.find(p => p.player_id === playerId);
+  updatePlayerPosition(userId: string, diceTotal: number): number {
+    const player = this.players.find(p => p.user_id === userId);
     if (!player) throw new Error('Player not found');
 
     // Calculate new position (wrap around at 40)
@@ -107,7 +110,7 @@ export class Game {
    * Roll dice and update player position
    */
   rollDiceAndUpdatePosition(
-    playerId: string,
+    userId: string,
     timeServiceInstance: ITimeService = timeService
   ): DiceRollResult {
     // Roll dice
@@ -119,7 +122,7 @@ export class Game {
     const timestamp = timeServiceInstance.now();
 
     // Update position
-    const newPosition = this.updatePlayerPosition(playerId, total);
+    const newPosition = this.updatePlayerPosition(userId, total);
 
     const diceResult: DiceRollResult = {
       dice,

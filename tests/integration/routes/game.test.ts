@@ -220,7 +220,7 @@ describe('Game Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('players');
       expect(response.body.data.players).toHaveLength(2);
-      expect(response.body.data.players[0]).toHaveProperty('player_id');
+      expect(response.body.data.players[0]).toHaveProperty('user_id');
       expect(response.body.data.players[0]).toHaveProperty('player_turn');
       expect(response.body.data.players[0]).toHaveProperty('position');
       expect(response.body.data.players[0]).toHaveProperty('player_money');

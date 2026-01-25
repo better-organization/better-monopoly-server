@@ -1,10 +1,6 @@
 import { Request, Response } from 'express';
 import { GameService } from '../services/gameService';
-import {
-  DiceRollRequest,
-  DiceRollData,
-  GameStateResponse,
-} from '../types/game';
+import { DiceRollData, GameStateResponse } from '../types/game';
 import { ResponseType } from '../types/response';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
@@ -62,7 +58,6 @@ export class GameController {
     try {
       const roomCode = req.user?.roomCode;
       const userId = req.user?.userId;
-      const { playerId }: DiceRollRequest = req.body;
 
       if (!userId || !roomCode) {
         res.status(400).json({
@@ -72,18 +67,10 @@ export class GameController {
         return;
       }
 
-      if (!playerId) {
-        res.status(400).json({
-          success: false,
-          message: 'Player ID is required',
-        });
-        return;
-      }
-
-      console.log(`Rolling dice for room: ${roomCode}, player: ${playerId}`);
+      console.log(`Rolling dice for room: ${roomCode}, player: ${userId}`);
 
       const gameService = GameService.getInstance();
-      const diceResult = gameService.rollDice(roomCode, playerId);
+      const diceResult = gameService.rollDice(roomCode, userId);
 
       if (!diceResult) {
         res.status(404).json({

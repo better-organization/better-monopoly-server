@@ -7,10 +7,6 @@ export interface DiceRollResult {
   newPosition: number;
 }
 
-export interface DiceRollRequest {
-  playerId: string;
-}
-
 export interface DiceRollData {
   dice: [number, number];
   total: number;
@@ -20,7 +16,7 @@ export interface DiceRollData {
 
 // Player structure for game state
 export interface PlayerState {
-  player_id: string;
+  user_id: string;
   player_turn: number;
   position: number;
   player_money: number;

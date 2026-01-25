@@ -24,7 +24,7 @@ describe('Game Model', () => {
 
         it('should initialize players with correct values', () => {
             expect(game.players[0]).toEqual({
-                player_id: mockPlayerIds[0],
+                user_id: mockPlayerIds[0],
                 player_turn: 1,
                 position: 0,
                 player_money: 1500,
@@ -33,7 +33,7 @@ describe('Game Model', () => {
                 transport_owns: [],
             });
             expect(game.players[1]).toEqual({
-                player_id: mockPlayerIds[1],
+                user_id: mockPlayerIds[1],
                 player_turn: 2,
                 position: 0,
                 player_money: 1500,
@@ -57,7 +57,7 @@ describe('Game Model', () => {
             const state = game.getState();
             expect(state.players).toHaveLength(2);
             expect(state.players[0]).toEqual({
-                player_id: mockPlayerIds[0],
+                user_id: mockPlayerIds[0],
                 player_turn: 1,
                 position: 0,
                 player_money: 1500,
@@ -80,7 +80,7 @@ describe('Game Model', () => {
 
             expect(state.players).toHaveLength(2);
             expect(state.players[0]).toEqual({
-                player_id: mockPlayerIds[0],
+                user_id: mockPlayerIds[0],
                 player_turn: 1,
                 position: 5,
                 player_money: 1500,
@@ -89,7 +89,7 @@ describe('Game Model', () => {
                 transport_owns: [],
             });
             expect(state.players[1]).toEqual({
-                player_id: mockPlayerIds[1],
+                user_id: mockPlayerIds[1],
                 player_turn: 2,
                 position: 10,
                 player_money: 1200,

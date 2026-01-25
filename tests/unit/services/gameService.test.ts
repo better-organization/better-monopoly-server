@@ -188,7 +188,7 @@ describe('GameService', () => {
 
             // Add a player
             game.players.push({
-                player_id: 'test-player-1',
+                user_id: 'test-player-1',
                 player_turn: 1,
                 position: 0,
                 player_money: 1500,
@@ -307,7 +307,7 @@ describe('GameService', () => {
 
             const game = gameService.createGame(roomId, ['host-456']);
             game.players.push({
-                player_id: 'test-player-1',
+                user_id: 'test-player-1',
                 player_turn: 1,
                 position: 0,
                 player_money: 1500,

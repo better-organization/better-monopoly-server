@@ -206,7 +206,7 @@ describe('GameController', () => {
                 mockResponse as Response
             );
 
-            expect(mockGameService.rollDice).toHaveBeenCalledWith('ABC123', 1);
+            expect(mockGameService.rollDice).toHaveBeenCalledWith('ABC123', "user-123");
             expect(statusMock).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 success: true,
@@ -254,22 +254,6 @@ describe('GameController', () => {
             expect(jsonMock).toHaveBeenCalledWith({
                 success: false,
                 message: 'Required Property not found in token',
-            });
-            expect(mockGameService.rollDice).not.toHaveBeenCalled();
-        });
-
-        it('should return 400 when playerId is missing', () => {
-            mockRequest.body = {};
-
-            GameController.rollDice(
-                mockRequest as Request,
-                mockResponse as Response
-            );
-
-            expect(statusMock).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({
-                success: false,
-                message: 'Player ID is required',
             });
             expect(mockGameService.rollDice).not.toHaveBeenCalled();
         });
