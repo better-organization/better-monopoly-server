@@ -51,7 +51,11 @@ export class Game {
   public createdAt: Date;
   public updatedAt: Date;
 
-  constructor(roomId: string, players: string[], gameId: string = randomUUID()) {
+  constructor(
+    roomId: string,
+    players: string[],
+    gameId: string = randomUUID()
+  ) {
     this.gameId = gameId;
     this.roomId = roomId;
     this.currentPlayer = 0;
