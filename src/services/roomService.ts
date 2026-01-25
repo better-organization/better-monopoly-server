@@ -120,17 +120,26 @@ export class RoomService {
 
     // At this point, room is guaranteed to exist and validations passed
     const roomInfo = room!.getRoomInfo();
+    const hostId = room!.getHostId();
 
-    // Create game instance
-    const game = await GameService.createGame(roomInfo.players);
+    if (!hostId) {
+      return {
+        success: false,
+        message: 'No host found in room',
+        errorType: errorType.BAD_REQUEST,
+      };
+    }
 
-    // Assign game ID to room
-    room!.setGameId(game.id);
+    // Create game instance with players
+    const gameService = GameService.getInstance();
+    gameService.createGame(roomInfo.roomId, roomInfo.players);
+
+    // Set game ID to room (this also updates room state to IN_GAME)
+    room!.setGameId(roomInfo.roomId);
 
     return {
       success: true,
       message: RESPONSE_MESSAGES.GAME_STARTED_SUCCESSFULLY,
-      gameId: game.id,
     };
   }
 }

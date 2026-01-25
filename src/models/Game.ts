@@ -6,7 +6,8 @@ import { ITimeService, timeService } from '../services/timeService';
 
 // Player interface
 export interface IPlayer {
-  player_no: number;
+  player_id: string;
+  player_turn: number;
   position: number;
   player_money: number;
   property_owns: string[];
@@ -48,16 +49,26 @@ export class Game {
   public createdAt: Date;
   public updatedAt: Date;
 
-  constructor(roomId: string, hostId: string, maxPlayers: number = 4) {
+  constructor(roomId: string, playerIds: string[]) {
     this.roomId = roomId;
-    this.players = [];
     this.currentPlayer = 0;
     this.status = 'waiting';
-    this.maxPlayers = maxPlayers;
-    this.hostId = hostId;
+    this.maxPlayers = playerIds.length;
+    this.hostId = playerIds[0] || '';
     this.gameSettings = DEFAULT_GAME_SETTINGS;
     this.createdAt = new Date();
     this.updatedAt = new Date();
+
+    // Initialize players with starting values
+    this.players = playerIds.map((playerId, index) => ({
+      player_id: playerId,
+      player_turn: index + 1,
+      position: 0,
+      player_money: this.gameSettings.startingMoney,
+      property_owns: [],
+      utility_owns: [],
+      transport_owns: [],
+    }));
   }
 
   /**
@@ -66,7 +77,8 @@ export class Game {
   getState(): GameStateResponse {
     return {
       players: this.players.map(player => ({
-        player_no: player.player_no,
+        player_id: player.player_id,
+        player_turn: player.player_turn,
         position: player.position,
         player_money: player.player_money,
         property_owns: player.property_owns,
@@ -79,8 +91,8 @@ export class Game {
   /**
    * Update player position
    */
-  updatePlayerPosition(playerId: number, diceTotal: number): number {
-    const player = this.players.find(p => p.player_no === playerId);
+  updatePlayerPosition(playerId: string, diceTotal: number): number {
+    const player = this.players.find(p => p.player_id === playerId);
     if (!player) throw new Error('Player not found');
 
     // Calculate new position (wrap around at 40)
@@ -95,7 +107,7 @@ export class Game {
    * Roll dice and update player position
    */
   rollDiceAndUpdatePosition(
-    playerId: number,
+    playerId: string,
     timeServiceInstance: ITimeService = timeService
   ): DiceRollResult {
     // Roll dice

@@ -39,25 +39,27 @@ describe('GameService', () => {
     describe('createGame', () => {
         it('should create a new game with correct parameters', () => {
             const roomId = 'room-123';
-            const hostId = 'host-456';
+            const playerIds = ['host-456'];
 
-            const game = gameService.createGame(roomId, hostId);
+            const game = gameService.createGame(roomId, playerIds);
 
             expect(game).toBeInstanceOf(Game);
             expect(game.roomId).toBe(roomId);
-            expect(game.hostId).toBe(hostId);
-            expect(game.maxPlayers).toBe(4);
+            expect(game.hostId).toBe(playerIds[0]);
+            expect(game.maxPlayers).toBe(1);
         });
 
-        it('should create game with custom maxPlayers', () => {
-            const game = gameService.createGame('room-123', 'host-456', 6);
+        it('should create game with multiple players', () => {
+            const playerIds = ['host-456', 'player-2', 'player-3'];
+            const game = gameService.createGame('room-123', playerIds);
 
-            expect(game.maxPlayers).toBe(6);
+            expect(game.maxPlayers).toBe(3);
+            expect(game.players).toHaveLength(3);
         });
 
         it('should store the game in the games map', () => {
             const roomId = 'room-123';
-            gameService.createGame(roomId, 'host-456');
+            gameService.createGame(roomId, ['host-456']);
 
             const retrievedGame = gameService.getGame(roomId);
             expect(retrievedGame).toBeDefined();
@@ -65,8 +67,8 @@ describe('GameService', () => {
         });
 
         it('should create multiple games independently', () => {
-            const game1 = gameService.createGame('room-1', 'host-1');
-            const game2 = gameService.createGame('room-2', 'host-2');
+            const game1 = gameService.createGame('room-1', ['host-1']);
+            const game2 = gameService.createGame('room-2', ['host-2']);
 
             expect(game1.roomId).toBe('room-1');
             expect(game2.roomId).toBe('room-2');
@@ -77,7 +79,7 @@ describe('GameService', () => {
     describe('getGame', () => {
         it('should return game when it exists', () => {
             const roomId = 'room-123';
-            const createdGame = gameService.createGame(roomId, 'host-456');
+            const createdGame = gameService.createGame(roomId, ['host-456']);
 
             const retrievedGame = gameService.getGame(roomId);
 
@@ -101,9 +103,11 @@ describe('GameService', () => {
                 roomId,
                 roomCode,
                 players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
             });
 
-            const createdGame = gameService.createGame(roomId, 'host-456');
+            const createdGame = gameService.createGame(roomId, ['host-456']);
             const retrievedGame = gameService.getGameByRoomCode(roomCode);
 
             expect(retrievedGame).toBe(createdGame);
@@ -123,6 +127,8 @@ describe('GameService', () => {
                 roomId: 'room-123',
                 roomCode: '123456',
                 players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
             });
 
             const game = gameService.getGameByRoomCode('123456');
@@ -140,19 +146,14 @@ describe('GameService', () => {
                 roomId,
                 roomCode,
                 players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
             });
 
-            const game = gameService.createGame(roomId, 'host-456');
+            const game = gameService.createGame(roomId, ['host-456']);
 
-            // Add a player manually for testing
-            game.players.push({
-                player_no: 1,
-                position: 5,
-                player_money: 1500,
-                property_owns: [],
-                utility_owns: [],
-                transport_owns: [],
-            });
+            // Modify the existing player's position for testing
+            game.players[0]!.position = 5;
 
             const state = gameService.getGameState(roomCode);
 
@@ -179,13 +180,16 @@ describe('GameService', () => {
                 roomId,
                 roomCode,
                 players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
             });
 
-            const game = gameService.createGame(roomId, 'host-456');
+            const game = gameService.createGame(roomId, ['host-456']);
 
             // Add a player
             game.players.push({
-                player_no: 1,
+                player_id: 'test-player-1',
+                player_turn: 1,
                 position: 0,
                 player_money: 1500,
                 property_owns: [],
@@ -193,7 +197,7 @@ describe('GameService', () => {
                 transport_owns: [],
             });
 
-            const result = gameService.rollDice(roomCode, 1);
+            const result = gameService.rollDice(roomCode, "test-player-1");
 
             expect(result).toBeDefined();
             expect(result?.dice).toHaveLength(2);
@@ -205,7 +209,7 @@ describe('GameService', () => {
         it('should return null when game does not exist', () => {
             mockRoomService.getRoom.mockReturnValue(undefined);
 
-            const result = gameService.rollDice('invalid-code', 1);
+            const result = gameService.rollDice('invalid-code', "1");
 
             expect(result).toBeNull();
         });
@@ -218,13 +222,15 @@ describe('GameService', () => {
                 roomId,
                 roomCode,
                 players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
             });
 
-            gameService.createGame(roomId, 'host-456');
+            gameService.createGame(roomId, ['host-456']);
 
             // Don't add any players - rollDice will throw error which service catches
             try {
-                const result = gameService.rollDice(roomCode, 1);
+                const result = gameService.rollDice(roomCode, "1");
                 // If it doesn't throw, it should return null
                 expect(result).toBeNull();
             } catch (error) {
@@ -237,7 +243,7 @@ describe('GameService', () => {
     describe('deleteGame', () => {
         it('should delete existing game', () => {
             const roomId = 'room-123';
-            gameService.createGame(roomId, 'host-456');
+            gameService.createGame(roomId, ['host-456']);
 
             const deleted = gameService.deleteGame(roomId);
 
@@ -260,9 +266,9 @@ describe('GameService', () => {
         });
 
         it('should return all games', () => {
-            gameService.createGame('room-1', 'host-1');
-            gameService.createGame('room-2', 'host-2');
-            gameService.createGame('room-3', 'host-3');
+            gameService.createGame('room-1', ['host-1']);
+            gameService.createGame('room-2', ['host-2']);
+            gameService.createGame('room-3', ['host-3']);
 
             const games = gameService.getAllGames();
 
@@ -275,8 +281,8 @@ describe('GameService', () => {
 
     describe('clearAllGames', () => {
         it('should clear all games', () => {
-            gameService.createGame('room-1', 'host-1');
-            gameService.createGame('room-2', 'host-2');
+            gameService.createGame('room-1', ['host-1']);
+            gameService.createGame('room-2', ['host-2']);
 
             expect(gameService.getAllGames()).toHaveLength(2);
 
@@ -295,11 +301,14 @@ describe('GameService', () => {
                 roomId,
                 roomCode,
                 players: ['player1', 'player2'],
+                maxPlayers: 4,
+                roomState: 'WAITING',
             });
 
-            const game = gameService.createGame(roomId, 'host-456');
+            const game = gameService.createGame(roomId, ['host-456']);
             game.players.push({
-                player_no: 1,
+                player_id: 'test-player-1',
+                player_turn: 1,
                 position: 0,
                 player_money: 1500,
                 property_owns: [],

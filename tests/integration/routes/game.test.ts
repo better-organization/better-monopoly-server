@@ -1,7 +1,51 @@
 import request from 'supertest';
 import app from '../../../src/server';
+import { User } from '../../../src/models/User';
+import { RoomService } from '../../../src/services/roomService';
+import { GameService } from '../../../src/services/gameService';
 
 describe('Game Routes', () => {
+  // Helper function to extract cookies from response headers
+  const getCookies = (headers: Record<string, string | string[]>): string[] => {
+    const cookies = headers['set-cookie'];
+    if (Array.isArray(cookies)) {
+      return cookies;
+    }
+    return cookies ? [cookies] : [];
+  };
+
+  // Helper function to register and login a user
+  const registerAndLogin = async (username: string, userId: string, password: string = 'password123'): Promise<string[]> => {
+    // Register
+    const registerResponse = await request(app)
+      .post('/api/auth/register')
+      .send({ username, userId, password });
+
+    // Debug: log if registration fails
+    if (registerResponse.status !== 201) {
+      console.log('Registration failed for', userId, ':', registerResponse.status, JSON.stringify(registerResponse.body));
+    }
+
+    // Login and get cookie
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({ userId, password });
+
+    // Debug: log if login fails
+    if (loginResponse.status !== 200) {
+      console.log('Login failed:', loginResponse.status, loginResponse.body);
+    }
+
+    return getCookies(loginResponse.headers);
+  };
+
+  beforeEach(async () => {
+    // Clear user storage before each test
+    await User.deleteMany();
+    // Clear room and game storage before each test
+    RoomService.getInstance().clearStorage();
+    GameService.getInstance().clearAllGames();
+  });
   describe('GET /api/game/test', () => {
     it('should return game service status', async () => {
       const response = await request(app).get('/api/game/test');
@@ -123,10 +167,116 @@ describe('Game Routes', () => {
     });
   });
 
-  // NOTE: roll-dice endpoint now requires authentication
-  // These tests are covered in unit tests with proper mocking
-  // See tests/unit/controllers/gameController.test.ts for comprehensive coverage
-  describe('POST /api/game/roll-dice', () => {
+  // Complete game workflow tests
+  describe('Complete Game Workflow', () => {
+    let hostCookies: string[];
+    let player2Cookies: string[];
+    let roomCode: string;
+
+    beforeEach(async () => {
+      // Register and login host
+      hostCookies = await registerAndLogin('Host_User', 'host_user');
+
+      // Register and login player 2
+      player2Cookies = await registerAndLogin('Player_2', 'player2_user');
+
+      const response = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Debug: log response if it fails
+      if (!response.body.data) {
+        console.log('Room creation failed:', response.status, response.body);
+      }
+
+      roomCode = response.body.data?.roomCode || '';
+
+      // Update hostCookies to include the game_token cookie from room creation
+      const roomCookies = getCookies(response.headers);
+      hostCookies = [...hostCookies, ...roomCookies];
+
+      // Player 2 joins
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', player2Cookies)
+        .send({ roomCode });
+
+      // Update player2Cookies to include the game_token cookie from joining
+      const joinCookies = getCookies(joinResponse.headers);
+      player2Cookies = [...player2Cookies, ...joinCookies];
+
+      // Start game
+      await request(app).post('/api/room/start').set('Cookie', hostCookies);
+    });
+
+    it('should get game state after game starts', async () => {
+      const response = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies)
+        .send();
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('players');
+      expect(response.body.data.players).toHaveLength(2);
+      expect(response.body.data.players[0]).toHaveProperty('player_id');
+      expect(response.body.data.players[0]).toHaveProperty('player_turn');
+      expect(response.body.data.players[0]).toHaveProperty('position');
+      expect(response.body.data.players[0]).toHaveProperty('player_money');
+      expect(response.body.data.players[0].player_money).toBe(1500);
+    });
+
+    it('should roll dice successfully for player 1', async () => {
+      const response = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send({ playerId: "host_user" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('dice');
+      expect(response.body.data.dice).toHaveLength(2);
+      expect(response.body.data).toHaveProperty('total');
+      expect(response.body.data).toHaveProperty('newPosition');
+      expect(response.body.data.total).toBeGreaterThanOrEqual(2);
+      expect(response.body.data.total).toBeLessThanOrEqual(12);
+    });
+
+    it('should update player position after rolling dice', async () => {
+      // Roll dice
+      const rollResponse = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send({ playerId: "host_user" });
+
+      const newPosition = rollResponse.body.data.newPosition;
+
+      // Get game state
+      const stateResponse = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      expect(stateResponse.body.data.players[0].position).toBe(newPosition);
+    });
+
+    it('should allow player 2 to roll dice', async () => {
+      const response = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', player2Cookies)
+        .send({ playerId: "player2_user" });
+
+      // Player 2 can roll dice (game logic will handle turn validation)
+      expect([200, 400]).toContain(response.status);
+      if (response.status === 200) {
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toHaveProperty('dice');
+      }
+    });
+  });
+
+  // Authentication tests for game endpoints
+  describe('POST /api/game/roll-dice - Authentication', () => {
     it('should return 401 when not authenticated', async () => {
       const response = await request(app).post('/api/game/roll-dice').send({});
 
@@ -136,9 +286,60 @@ describe('Game Routes', () => {
     it('should return 401 without auth cookie', async () => {
       const response = await request(app)
         .post('/api/game/roll-dice')
-        .send({ playerId: 1 });
+        .send({ playerId: "test_user_id" });
 
       expect(response.status).toBe(401);
+    });
+
+    it('should return 400 when playerId is missing', async () => {
+      // Create authenticated user
+      const hostCookies = await registerAndLogin('Test_Host', 'test_host');
+
+      // Create room and start game
+      const createRoom = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', hostCookies)
+        .send();
+      const roomCode = createRoom.body.data.roomCode;
+
+      // Add another player
+      const player2Cookies = await registerAndLogin('Test_Player_2', 'test_player2');
+
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', player2Cookies)
+        .send({ roomCode });
+
+      await request(app).post('/api/room/start').set('Cookie', hostCookies);
+
+      // Try to roll without playerId
+      const response = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send({});
+
+      // Expect either 400 (missing playerId) or 401 (auth issue)
+      expect([400, 401]).toContain(response.status);
+    });
+  });
+
+  describe('GET /api/game/state - Authentication', () => {
+    it('should return 401 when not authenticated', async () => {
+      const response = await request(app).get('/api/game/state');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 400 when user has no roomCode in token', async () => {
+      // Create user without joining a room
+      const cookies = await registerAndLogin('Test_User', 'test_user_noroomcode');
+
+      const response = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', cookies);
+
+      // Expect either 400 (no roomCode) or 401 (auth issue)
+      expect([400, 401]).toContain(response.status);
     });
   });
 

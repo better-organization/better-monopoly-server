@@ -30,10 +30,10 @@ export class GameService {
   }
 
   /**
-   * Create a new game for a room
+   * Create a new game for a room with a single player (for backwards compatibility)
    */
-  createGame(roomId: string, hostId: string, maxPlayers: number = 4): Game {
-    const game = new Game(roomId, hostId, maxPlayers);
+  createGame(roomId: string, players: string[]): Game {
+    const game = new Game(roomId, players);
     this.games.set(roomId, game);
     return game;
   }
@@ -68,7 +68,7 @@ export class GameService {
   /**
    * Roll dice action of a specific game by roomCode
    */
-  rollDice(roomCode: string, playerId: number): DiceRollResult | null {
+  rollDice(roomCode: string, playerId: string): DiceRollResult | null {
     const game = this.getGameByRoomCode(roomCode);
     return game ? game.rollDiceAndUpdatePosition(playerId) : null;
   }

@@ -8,7 +8,7 @@ export interface DiceRollResult {
 }
 
 export interface DiceRollRequest {
-  playerId: number;
+  playerId: string;
 }
 
 export interface DiceRollData {
@@ -20,7 +20,8 @@ export interface DiceRollData {
 
 // Player structure for game state
 export interface PlayerState {
-  player_no: number;
+  player_id: string;
+  player_turn: number;
   position: number;
   player_money: number;
   property_owns: string[];

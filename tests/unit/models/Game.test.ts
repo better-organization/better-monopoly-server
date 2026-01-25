@@ -3,28 +3,44 @@ import { Game, DEFAULT_GAME_SETTINGS } from '../../../src/models/Game';
 describe('Game Model', () => {
     let game: Game;
     const mockRoomId = 'test-room-123';
-    const mockHostId = 'host-456';
+    const mockPlayerIds = ['host-456', 'player-789'];
 
     beforeEach(() => {
-        game = new Game(mockRoomId, mockHostId);
+        game = new Game(mockRoomId, mockPlayerIds);
     });
 
     describe('Constructor', () => {
         it('should create a game with correct initial values', () => {
             expect(game.roomId).toBe(mockRoomId);
-            expect(game.hostId).toBe(mockHostId);
-            expect(game.players).toEqual([]);
+            expect(game.hostId).toBe(mockPlayerIds[0]);
+            expect(game.players).toHaveLength(2);
             expect(game.currentPlayer).toBe(0);
             expect(game.status).toBe('waiting');
-            expect(game.maxPlayers).toBe(4);
+            expect(game.maxPlayers).toBe(2);
             expect(game.gameSettings).toEqual(DEFAULT_GAME_SETTINGS);
             expect(game.createdAt).toBeInstanceOf(Date);
             expect(game.updatedAt).toBeInstanceOf(Date);
         });
 
-        it('should accept custom maxPlayers', () => {
-            const customGame = new Game(mockRoomId, mockHostId, 6);
-            expect(customGame.maxPlayers).toBe(6);
+        it('should initialize players with correct values', () => {
+            expect(game.players[0]).toEqual({
+                player_id: mockPlayerIds[0],
+                player_turn: 1,
+                position: 0,
+                player_money: 1500,
+                property_owns: [],
+                utility_owns: [],
+                transport_owns: [],
+            });
+            expect(game.players[1]).toEqual({
+                player_id: mockPlayerIds[1],
+                player_turn: 2,
+                position: 0,
+                player_money: 1500,
+                property_owns: [],
+                utility_owns: [],
+                transport_owns: [],
+            });
         });
 
         it('should initialize with default game settings', () => {
@@ -37,36 +53,35 @@ describe('Game Model', () => {
     });
 
     describe('getState', () => {
-        it('should return empty players array when no players added', () => {
+        it('should return players array with initialized players', () => {
             const state = game.getState();
-            expect(state.players).toEqual([]);
-        });
-
-        it('should return correct game state with players', () => {
-            // Manually add players for testing
-            game.players.push({
-                player_no: 1,
-                position: 5,
+            expect(state.players).toHaveLength(2);
+            expect(state.players[0]).toEqual({
+                player_id: mockPlayerIds[0],
+                player_turn: 1,
+                position: 0,
                 player_money: 1500,
                 property_owns: [],
                 utility_owns: [],
                 transport_owns: [],
             });
+        });
 
-            game.players.push({
-                player_no: 2,
-                position: 10,
-                player_money: 1200,
-                property_owns: ['property1'],
-                utility_owns: ['utility1'],
-                transport_owns: ['transport1'],
-            });
+        it('should return correct game state after modifying player data', () => {
+            // Modify existing player data
+            game.players[0]!.position = 5;
+            game.players[1]!.position = 10;
+            game.players[1]!.player_money = 1200;
+            game.players[1]!.property_owns = ['property1'];
+            game.players[1]!.utility_owns = ['utility1'];
+            game.players[1]!.transport_owns = ['transport1'];
 
             const state = game.getState();
 
             expect(state.players).toHaveLength(2);
             expect(state.players[0]).toEqual({
-                player_no: 1,
+                player_id: mockPlayerIds[0],
+                player_turn: 1,
                 position: 5,
                 player_money: 1500,
                 property_owns: [],
@@ -74,7 +89,8 @@ describe('Game Model', () => {
                 transport_owns: [],
             });
             expect(state.players[1]).toEqual({
-                player_no: 2,
+                player_id: mockPlayerIds[1],
+                player_turn: 2,
                 position: 10,
                 player_money: 1200,
                 property_owns: ['property1'],
@@ -85,34 +101,24 @@ describe('Game Model', () => {
     });
 
     describe('updatePlayerPosition', () => {
-        beforeEach(() => {
-            // Add a test player
-            game.players.push({
-                player_no: 1,
-                position: 0,
-                player_money: 1500,
-                property_owns: [],
-                utility_owns: [],
-                transport_owns: [],
-            });
-        });
+        // Players are already initialized in the main beforeEach
 
         it('should update player position correctly', () => {
-            const newPosition = game.updatePlayerPosition(1, 7);
+            const newPosition = game.updatePlayerPosition(mockPlayerIds[0]!, 7);
             expect(newPosition).toBe(7);
             expect(game.players[0]!.position).toBe(7);
         });
 
         it('should wrap around at position 40', () => {
             game.players[0]!.position = 38;
-            const newPosition = game.updatePlayerPosition(1, 5);
+            const newPosition = game.updatePlayerPosition(mockPlayerIds[0]!, 5);
             expect(newPosition).toBe(3); // (38 + 5) % 40 = 3
             expect(game.players[0]!.position).toBe(3);
         });
 
         it('should handle exact wrap at 40', () => {
             game.players[0]!.position = 35;
-            const newPosition = game.updatePlayerPosition(1, 5);
+            const newPosition = game.updatePlayerPosition(mockPlayerIds[0]!, 5);
             expect(newPosition).toBe(0); // (35 + 5) % 40 = 0
             expect(game.players[0]!.position).toBe(0);
         });
@@ -121,33 +127,23 @@ describe('Game Model', () => {
             const oldTimestamp = game.updatedAt;
             // Wait a bit to ensure timestamp difference
             setTimeout(() => {
-                game.updatePlayerPosition(1, 5);
+                game.updatePlayerPosition(mockPlayerIds[0]!, 5);
                 expect(game.updatedAt.getTime()).toBeGreaterThan(oldTimestamp.getTime());
             }, 10);
         });
 
         it('should throw error when player not found', () => {
             expect(() => {
-                game.updatePlayerPosition(999, 5);
+                game.updatePlayerPosition("nonexistent-player", 5);
             }).toThrow('Player not found');
         });
     });
 
     describe('rollDiceAndUpdatePosition', () => {
-        beforeEach(() => {
-            // Add a test player
-            game.players.push({
-                player_no: 1,
-                position: 0,
-                player_money: 1500,
-                property_owns: [],
-                utility_owns: [],
-                transport_owns: [],
-            });
-        });
+        // Players are already initialized in the main beforeEach
 
         it('should roll dice and return result with new position', () => {
-            const result = game.rollDiceAndUpdatePosition(1);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
 
             expect(result.dice).toHaveLength(2);
             expect(result.dice[0]).toBeGreaterThanOrEqual(1);
@@ -160,7 +156,7 @@ describe('Game Model', () => {
         });
 
         it('should update player position after rolling', () => {
-            const result = game.rollDiceAndUpdatePosition(1);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
             expect(game.players[0]!.position).toBe(result.newPosition);
         });
 
@@ -170,7 +166,7 @@ describe('Game Model', () => {
                 now: jest.fn().mockReturnValue(mockDate),
             };
 
-            const result = game.rollDiceAndUpdatePosition(1, mockTimeService);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockTimeService);
             expect(result.timestamp).toBe(mockDate);
             expect(mockTimeService.now).toHaveBeenCalled();
         });
@@ -185,7 +181,7 @@ describe('Game Model', () => {
                 .mockReturnValueOnce(0.8); // Second die: 5
             global.Math = mockMath;
 
-            const result = game.rollDiceAndUpdatePosition(1);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
 
             expect(result.total).toBe(9);
             expect(result.newPosition).toBe(7); // (38 + 9) % 40 = 7
@@ -194,44 +190,24 @@ describe('Game Model', () => {
 
         it('should throw error when player not found', () => {
             expect(() => {
-                game.rollDiceAndUpdatePosition(999);
+                game.rollDiceAndUpdatePosition("nonexistent-player");
             }).toThrow('Player not found');
         });
     });
 
     describe('Multiple Players', () => {
-        beforeEach(() => {
-            // Add multiple players
-            game.players.push(
-                {
-                    player_no: 1,
-                    position: 0,
-                    player_money: 1500,
-                    property_owns: [],
-                    utility_owns: [],
-                    transport_owns: [],
-                },
-                {
-                    player_no: 2,
-                    position: 0,
-                    player_money: 1500,
-                    property_owns: [],
-                    utility_owns: [],
-                    transport_owns: [],
-                }
-            );
-        });
+        // Players are already initialized in the main beforeEach (2 players)
 
         it('should update only the specified player position', () => {
-            game.updatePlayerPosition(1, 5);
+            game.updatePlayerPosition(mockPlayerIds[0]!, 5);
 
             expect(game.players[0]!.position).toBe(5);
             expect(game.players[1]!.position).toBe(0);
         });
 
         it('should allow different players to roll independently', () => {
-            const result1 = game.rollDiceAndUpdatePosition(1);
-            const result2 = game.rollDiceAndUpdatePosition(2);
+            const result1 = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            const result2 = game.rollDiceAndUpdatePosition(mockPlayerIds[1]!);
 
             expect(game.players[0]!.position).toBe(result1.newPosition);
             expect(game.players[1]!.position).toBe(result2.newPosition);
