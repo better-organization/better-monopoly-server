@@ -49,6 +49,24 @@ describe('GameService', () => {
             expect(game.maxPlayers).toBe(1);
         });
 
+        it('should create game with default game number 1', () => {
+            const roomId = 'room-123';
+            const playerIds = ['host-456'];
+
+            const game = gameService.createGame(roomId, playerIds);
+
+            expect(game.gameId).toBe(`${roomId}-g1`);
+        });
+
+        it('should create game with custom game number', () => {
+            const roomId = 'room-123';
+            const playerIds = ['host-456'];
+
+            const game = gameService.createGame(roomId, playerIds, 3);
+
+            expect(game.gameId).toBe(`${roomId}-g3`);
+        });
+
         it('should create game with multiple players', () => {
             const playerIds = ['host-456', 'player-2', 'player-3'];
             const game = gameService.createGame('room-123', playerIds);
@@ -184,26 +202,36 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const game = gameService.createGame(roomId, ['host-456']);
+            gameService.createGame(roomId, ['host-456']);
 
-            // Add a player
-            game.players.push({
-                user_id: 'test-player-1',
-                player_turn: 1,
-                position: 0,
-                player_money: 1500,
-                property_owns: [],
-                utility_owns: [],
-                transport_owns: [],
-            });
-
-            const result = gameService.rollDice(roomCode, "test-player-1");
+            const result = gameService.rollDice(roomCode, "host-456");
 
             expect(result).toBeDefined();
             expect(result?.dice).toHaveLength(2);
             expect(result?.total).toBeGreaterThanOrEqual(2);
             expect(result?.total).toBeLessThanOrEqual(12);
-            expect(result?.newPosition).toBe(result?.total);
+            expect(result!.newPosition).toBe(result!.total + 1);
+            expect(result).toHaveProperty('double');
+            expect(typeof result!.double).toBe('boolean');
+        });
+
+        it('should include double property in dice roll result', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const result = gameService.rollDice(roomCode, "host-456");
+
+            expect(result).toHaveProperty('double');
         });
 
         it('should return null when game does not exist', () => {
@@ -307,7 +335,7 @@ describe('GameService', () => {
 
             const game = gameService.createGame(roomId, ['host-456']);
             game.players.push({
-                user_id: 'test-player-1',
+                player_id: 'test-player-1',
                 player_turn: 1,
                 position: 0,
                 player_money: 1500,

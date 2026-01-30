@@ -36,7 +36,7 @@ export class GameController {
 
       const response: ResponseType<GameStateResponse> = {
         success: true,
-        data: gameState,
+        data: {...gameState, you: userId },
       };
 
       res.status(200).json(response);

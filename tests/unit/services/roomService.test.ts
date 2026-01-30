@@ -245,7 +245,8 @@ describe('RoomService', () => {
       expect(result.message).toBe('Game started successfully');
       expect(mockGameService.createGame).toHaveBeenCalledWith(
         expect.any(String), // roomId
-        ['host', 'player2']
+        ['host', 'player2'],
+        1
       );
     });
 
@@ -360,7 +361,8 @@ describe('RoomService', () => {
 
       expect(mockGameService.createGame).toHaveBeenCalledWith(
         expect.any(String), // roomId
-        expect.arrayContaining(['host', 'player2', 'player3'])
+        expect.arrayContaining(['host', 'player2', 'player3']),
+        1
       );
     });
   });

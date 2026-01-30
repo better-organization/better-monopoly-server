@@ -132,10 +132,11 @@ export class RoomService {
 
     // Create game instance with players
     const gameService = GameService.getInstance();
-    gameService.createGame(roomInfo.roomId, roomInfo.players);
+    const gameNumber = room!.getGameNumber();
+    const game = gameService.createGame(roomInfo.roomId, roomInfo.players, gameNumber + 1);
 
     // Set game ID to room (this also updates room state to IN_GAME)
-    room!.setGameId(roomInfo.roomId);
+    room!.setGameId(game.gameId);
 
     return {
       success: true,

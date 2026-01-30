@@ -220,7 +220,7 @@ describe('Game Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('players');
       expect(response.body.data.players).toHaveLength(2);
-      expect(response.body.data.players[0]).toHaveProperty('user_id');
+      expect(response.body.data.players[0]).toHaveProperty('player_id');
       expect(response.body.data.players[0]).toHaveProperty('player_turn');
       expect(response.body.data.players[0]).toHaveProperty('position');
       expect(response.body.data.players[0]).toHaveProperty('player_money');
@@ -231,7 +231,7 @@ describe('Game Routes', () => {
       const response = await request(app)
         .post('/api/game/roll-dice')
         .set('Cookie', hostCookies)
-        .send({ playerId: "host_user" });
+        .send();
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -248,7 +248,7 @@ describe('Game Routes', () => {
       const rollResponse = await request(app)
         .post('/api/game/roll-dice')
         .set('Cookie', hostCookies)
-        .send({ playerId: "host_user" });
+        .send();
 
       const newPosition = rollResponse.body.data.newPosition;
 
@@ -260,18 +260,30 @@ describe('Game Routes', () => {
       expect(stateResponse.body.data.players[0].position).toBe(newPosition);
     });
 
-    it('should allow player 2 to roll dice', async () => {
+    it('should not allow player 2 to roll dice when player 1\'s turn', async () => {
       const response = await request(app)
         .post('/api/game/roll-dice')
         .set('Cookie', player2Cookies)
-        .send({ playerId: "player2_user" });
+        .send();
 
       // Player 2 can roll dice (game logic will handle turn validation)
-      expect([200, 400]).toContain(response.status);
-      if (response.status === 200) {
-        expect(response.body.success).toBe(true);
-        expect(response.body.data).toHaveProperty('dice');
-      }
+      expect(response.status).toBe(500);
+    });
+
+    it('should allow player 2 to roll dice after player 1\'s turn', async () => {
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+      const response = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', player2Cookies)
+        .send();
+
+      // Player 2 can roll dice (game logic will handle turn validation)
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('dice');
     });
   });
 

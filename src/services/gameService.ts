@@ -32,8 +32,8 @@ export class GameService {
   /**
    * Create a new game for a room with a single player (for backwards compatibility)
    */
-  createGame(roomId: string, players: string[]): Game {
-    const game = new Game(roomId, players);
+  createGame(roomId: string, players: string[], gameNumber: number = 1): Game {
+    const game = new Game(roomId, players, gameNumber);
     this.games.set(roomId, game);
     return game;
   }
@@ -62,7 +62,7 @@ export class GameService {
    */
   getGameState(roomCode: string): GameStateResponse | null {
     const game = this.getGameByRoomCode(roomCode);
-    return game ? game.getState() : null;
+    return game ? game.getGameState() : null;
   }
 
   /**

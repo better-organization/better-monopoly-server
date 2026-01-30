@@ -62,9 +62,11 @@ describe('GameController', () => {
     describe('getGameState', () => {
         it('should return game state successfully', () => {
             const mockGameState = {
+                current_turn: 0,
                 players: [
                     {
-                        player_no: 1,
+                        player_id: 'player-1',
+                        player_turn: 0,
                         position: 5,
                         player_money: 1500,
                         property_owns: [],
@@ -72,7 +74,8 @@ describe('GameController', () => {
                         transport_owns: [],
                     },
                     {
-                        player_no: 2,
+                        player_id: 'player-2',
+                        player_turn: 1,
                         position: 10,
                         player_money: 1200,
                         property_owns: ['property1'],
@@ -93,7 +96,42 @@ describe('GameController', () => {
             expect(statusMock).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 success: true,
-                data: mockGameState,
+                data: {
+                    ...mockGameState,
+                    you: 'user-123',
+                },
+            });
+        });
+
+        it('should add you field to game state response', () => {
+            const mockGameState = {
+                current_turn: 0,
+                players: [
+                    {
+                        player_id: 'user-123',
+                        player_turn: 0,
+                        position: 5,
+                        player_money: 1500,
+                        property_owns: [],
+                        utility_owns: [],
+                        transport_owns: [],
+                    },
+                ],
+            };
+
+            mockGameService.getGameState = jest.fn().mockReturnValue(mockGameState);
+
+            GameController.getGameState(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    ...mockGameState,
+                    you: 'user-123',
+                },
             });
         });
 

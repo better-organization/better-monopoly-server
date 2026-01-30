@@ -3,11 +3,10 @@
 
 import { DiceRollResult, GameStateResponse } from '../types/game';
 import { ITimeService, timeService } from '../services/timeService';
-import { randomUUID } from 'node:crypto';
 
 // Player interface
 export interface IPlayer {
-  user_id: string;
+  player_id: string;
   player_turn: number;
   position: number;
   player_money: number;
@@ -39,8 +38,11 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
  * Similar to Room class pattern
  */
 export class Game {
-  public gameId: string;
+  public static diceResult(): number {
+    return Math.floor(Math.random() * 6) + 1;
+  }
   public roomId: string;
+  public gameId: string;
   public players: IPlayer[];
   public currentPlayer: number;
   public status: 'waiting' | 'active' | 'finished';
@@ -51,26 +53,22 @@ export class Game {
   public createdAt: Date;
   public updatedAt: Date;
 
-  constructor(
-    roomId: string,
-    players: string[],
-    gameId: string = randomUUID()
-  ) {
-    this.gameId = gameId;
+  constructor(roomId: string, playerIds: string[], gameNumber: number = 1) {
     this.roomId = roomId;
+    this.gameId = `${roomId}-g${gameNumber}`;
     this.currentPlayer = 0;
     this.status = 'waiting';
-    this.maxPlayers = players.length;
-    this.hostId = players[0] || '';
+    this.maxPlayers = playerIds.length;
+    this.hostId = playerIds[0] || '';
     this.gameSettings = DEFAULT_GAME_SETTINGS;
     this.createdAt = new Date();
     this.updatedAt = new Date();
 
     // Initialize players with starting values
-    this.players = players.map((userId, index) => ({
-      user_id: userId,
-      player_turn: index + 1,
-      position: 0,
+    this.players = playerIds.map((playerId, index) => ({
+      player_id: playerId,
+      player_turn: index,
+      position: 1,
       player_money: this.gameSettings.startingMoney,
       property_owns: [],
       utility_owns: [],
@@ -81,10 +79,11 @@ export class Game {
   /**
    * Get current game state
    */
-  getState(): GameStateResponse {
+  getGameState(): GameStateResponse {
     return {
+      current_turn: this.currentPlayer,
       players: this.players.map(player => ({
-        user_id: player.user_id,
+        player_id: player.player_id,
         player_turn: player.player_turn,
         position: player.position,
         player_money: player.player_money,
@@ -98,43 +97,56 @@ export class Game {
   /**
    * Update player position
    */
-  updatePlayerPosition(userId: string, diceTotal: number): number {
-    const player = this.players.find(p => p.user_id === userId);
+  updatePlayerPosition(playerId: string, diceTotal: number): number {
+    const player = this.players.find(p => p.player_id === playerId);
     if (!player) throw new Error('Player not found');
 
-    // Calculate new position (wrap around at 40)
     const newPosition = (player.position + diceTotal) % 40;
     player.position = newPosition;
+    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
     this.updatedAt = new Date();
 
     return newPosition;
+  }
+
+  isPlayerTurn(playerId: string): boolean {
+    const playerIndex = this.players.findIndex(p => p.player_id === playerId);
+    return playerIndex === this.currentPlayer;
   }
 
   /**
    * Roll dice and update player position
    */
   rollDiceAndUpdatePosition(
-    userId: string,
+    playerId: string,
     timeServiceInstance: ITimeService = timeService
   ): DiceRollResult {
+    if (!this.isPlayerTurn(playerId)) {
+      throw new Error("It's not the player's turn");
+    }
     // Roll dice
-    const dice: [number, number] = [
-      Math.floor(Math.random() * 6) + 1,
-      Math.floor(Math.random() * 6) + 1,
-    ];
-    const total = dice[0] + dice[1];
+    const { dice, total, double } = this.rollDice();
     const timestamp = timeServiceInstance.now();
 
-    // Update position
-    const newPosition = this.updatePlayerPosition(userId, total);
+    const newPosition = this.updatePlayerPosition(playerId, total);
 
-    const diceResult: DiceRollResult = {
+    return {
       dice,
       total,
       timestamp,
       newPosition,
+      double
     };
+  }
 
-    return diceResult;
+  rollDice() {
+    const dice: [number, number] = [
+      Game.diceResult(),
+      Game.diceResult(),
+    ];
+    console.log(dice, Game.diceResult(), Game.diceResult)
+    const total = dice[0] + dice[1];
+    const double = dice[0] === dice[1];
+    return { dice, total, double };
   }
 }
