@@ -135,16 +135,13 @@ export class Game {
       total,
       timestamp,
       newPosition,
-      double
+      double,
     };
   }
 
   rollDice() {
-    const dice: [number, number] = [
-      Game.diceResult(),
-      Game.diceResult(),
-    ];
-    console.log(dice, Game.diceResult(), Game.diceResult)
+    const dice: [number, number] = [Game.diceResult(), Game.diceResult()];
+    console.log(dice, Game.diceResult(), Game.diceResult);
     const total = dice[0] + dice[1];
     const double = dice[0] === dice[1];
     return { dice, total, double };
