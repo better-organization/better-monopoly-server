@@ -21,6 +21,7 @@ export class Room {
   private players: Array<string>;
   private maxPlayers: number = GAME_CONSTANTS.MAX_PLAYERS;
   private gameId: string | null = null;
+  private gameNumber: number;
   private roomState: RoomState;
 
   constructor(roomId: string, roomCode: string) {
@@ -28,6 +29,7 @@ export class Room {
     this.roomCode = roomCode;
     this.players = new Array<string>();
     this.roomState = RoomState.WAITING;
+    this.gameNumber = 0;
   }
 
   addPlayer(userId: string): boolean {
@@ -45,7 +47,12 @@ export class Room {
 
   setGameId(gameId: string): void {
     this.gameId = gameId;
+    this.gameNumber++;
     this.roomState = RoomState.IN_GAME;
+  }
+
+  getGameNumber(): number {
+    return this.gameNumber;
   }
 
   getGameId(): string | null {

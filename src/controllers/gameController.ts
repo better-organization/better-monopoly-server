@@ -1,34 +1,92 @@
 import { Request, Response } from 'express';
 import { GameService } from '../services/gameService';
-import { DiceRollRequest, DiceRollData } from '../types/game';
+import { DiceRollData, GameStateResponse } from '../types/game';
 import { ResponseType } from '../types/response';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 
 export class GameController {
   /**
-   * POST /api/game/roll-dice
-   * Roll dice for a game
+   * GET /api/game/state
+   * Get game state for polling
+   * Gets roomCode from user token (cookie)
    */
-  static async rollDice(req: Request, res: Response): Promise<void> {
+  static getGameState(req: Request, res: Response): void {
     try {
-      const { gameId, playerId }: DiceRollRequest = req.body;
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
 
-      if (gameId) {
-        console.log(`Rolling dice for game: ${gameId}`);
+      if (!userId || !roomCode) {
+        res.status(400).json({
+          success: false,
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
+        });
+        return;
       }
 
-      if (playerId) {
-        console.log(`Player: ${playerId}`);
+      const gameService = GameService.getInstance();
+      const gameState = gameService.getGameState(roomCode);
+
+      if (!gameState) {
+        res.status(404).json({
+          success: false,
+          message: 'Game not found for this room',
+        });
+        return;
       }
 
-      const result = GameService.rollDice();
+      const response: ResponseType<GameStateResponse> = {
+        success: true,
+        data: { ...gameState, you: userId },
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Get game state error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while retrieving game state',
+      });
+    }
+  }
+
+  /**
+   * POST /api/game/roll-dice
+   * Roll dice for a game and update player position
+   * Gets roomCode from user token (cookie)
+   */
+  static rollDice(req: Request, res: Response): void {
+    try {
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
+
+      if (!userId || !roomCode) {
+        res.status(400).json({
+          success: false,
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
+        });
+        return;
+      }
+
+      console.log(`Rolling dice for room: ${roomCode}, player: ${userId}`);
+
+      const gameService = GameService.getInstance();
+      const diceResult = gameService.rollDice(roomCode, userId);
+
+      if (!diceResult) {
+        res.status(404).json({
+          success: false,
+          message: 'Game or player not found',
+        });
+        return;
+      }
 
       const response: ResponseType<DiceRollData> = {
         success: true,
         data: {
-          dice: result.dice,
-          total: result.total,
-          timestamp: result.timestamp.toISOString(),
+          dice: diceResult.dice,
+          total: diceResult.total,
+          timestamp: diceResult.timestamp.toISOString(),
+          newPosition: diceResult.newPosition,
         },
       };
 

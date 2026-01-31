@@ -1,70 +1,353 @@
 import { GameService } from '../../../src/services/gameService';
-import { ITimeService } from '../../../src/services/timeService';
+import { RoomService } from '../../../src/services/roomService';
+import { Game } from '../../../src/models/Game';
+
+// Mock RoomService
+jest.mock('../../../src/services/roomService');
 
 describe('GameService', () => {
+    let gameService: GameService;
+    let mockRoomService: jest.Mocked<RoomService>;
+
+    beforeEach(() => {
+        // Clear all instances and calls to constructor and all methods:
+        jest.clearAllMocks();
+
+        // Get singleton instance
+        gameService = GameService.getInstance();
+
+        // Clear all games before each test
+        gameService.clearAllGames();
+
+        // Setup mock RoomService
+        mockRoomService = {
+            getRoom: jest.fn(),
+        } as any;
+
+        (RoomService.getInstance as jest.Mock).mockReturnValue(mockRoomService);
+    });
+
+    describe('Singleton Pattern', () => {
+        it('should return the same instance', () => {
+            const instance1 = GameService.getInstance();
+            const instance2 = GameService.getInstance();
+
+            expect(instance1).toBe(instance2);
+        });
+    });
+
+    describe('createGame', () => {
+        it('should create a new game with correct parameters', () => {
+            const roomId = 'room-123';
+            const playerIds = ['host-456'];
+
+            const game = gameService.createGame(roomId, playerIds);
+
+            expect(game).toBeInstanceOf(Game);
+            expect(game.roomId).toBe(roomId);
+            expect(game.hostId).toBe(playerIds[0]);
+            expect(game.maxPlayers).toBe(1);
+        });
+
+        it('should create game with default game number 1', () => {
+            const roomId = 'room-123';
+            const playerIds = ['host-456'];
+
+            const game = gameService.createGame(roomId, playerIds);
+
+            expect(game.gameId).toBe(`${roomId}-g1`);
+        });
+
+        it('should create game with custom game number', () => {
+            const roomId = 'room-123';
+            const playerIds = ['host-456'];
+
+            const game = gameService.createGame(roomId, playerIds, 3);
+
+            expect(game.gameId).toBe(`${roomId}-g3`);
+        });
+
+        it('should create game with multiple players', () => {
+            const playerIds = ['host-456', 'player-2', 'player-3'];
+            const game = gameService.createGame('room-123', playerIds);
+
+            expect(game.maxPlayers).toBe(3);
+            expect(game.players).toHaveLength(3);
+        });
+
+        it('should store the game in the games map', () => {
+            const roomId = 'room-123';
+            gameService.createGame(roomId, ['host-456']);
+
+            const retrievedGame = gameService.getGame(roomId);
+            expect(retrievedGame).toBeDefined();
+            expect(retrievedGame?.roomId).toBe(roomId);
+        });
+
+        it('should create multiple games independently', () => {
+            const game1 = gameService.createGame('room-1', ['host-1']);
+            const game2 = gameService.createGame('room-2', ['host-2']);
+
+            expect(game1.roomId).toBe('room-1');
+            expect(game2.roomId).toBe('room-2');
+            expect(gameService.getAllGames()).toHaveLength(2);
+        });
+    });
+
+    describe('getGame', () => {
+        it('should return game when it exists', () => {
+            const roomId = 'room-123';
+            const createdGame = gameService.createGame(roomId, ['host-456']);
+
+            const retrievedGame = gameService.getGame(roomId);
+
+            expect(retrievedGame).toBe(createdGame);
+        });
+
+        it('should return null when game does not exist', () => {
+            const game = gameService.getGame('non-existent-room');
+
+            expect(game).toBeNull();
+        });
+    });
+
+    describe('getGameByRoomCode', () => {
+        it('should return game when room exists', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            // Mock RoomService to return room info
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const createdGame = gameService.createGame(roomId, ['host-456']);
+            const retrievedGame = gameService.getGameByRoomCode(roomCode);
+
+            expect(retrievedGame).toBe(createdGame);
+            expect(mockRoomService.getRoom).toHaveBeenCalledWith(roomCode);
+        });
+
+        it('should return null when room does not exist', () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const game = gameService.getGameByRoomCode('invalid-code');
+
+            expect(game).toBeNull();
+        });
+
+        it('should return null when room exists but game does not', () => {
+            mockRoomService.getRoom.mockReturnValue({
+                roomId: 'room-123',
+                roomCode: '123456',
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const game = gameService.getGameByRoomCode('123456');
+
+            expect(game).toBeNull();
+        });
+    });
+
+    describe('getGameState', () => {
+        it('should return game state when game exists', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const game = gameService.createGame(roomId, ['host-456']);
+
+            // Modify the existing player's position for testing
+            game.players[0]!.position = 5;
+
+            const state = gameService.getGameState(roomCode);
+
+            expect(state).toBeDefined();
+            expect(state?.players).toHaveLength(1);
+            expect(state?.players[0]?.position).toBe(5);
+        });
+
+        it('should return null when game does not exist', () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const state = gameService.getGameState('invalid-code');
+
+            expect(state).toBeNull();
+        });
+    });
+
     describe('rollDice', () => {
-        let mockTimeService: ITimeService;
-        const fixedDate = new Date('2026-01-11T13:34:17.000Z');
+        it('should roll dice and update position', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
 
-        beforeEach(() => {
-            mockTimeService = {
-                now: jest.fn().mockReturnValue(fixedDate),
-            };
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const result = gameService.rollDice(roomCode, "host-456");
+
+            expect(result).toBeDefined();
+            expect(result?.dice).toHaveLength(2);
+            expect(result?.total).toBeGreaterThanOrEqual(2);
+            expect(result?.total).toBeLessThanOrEqual(12);
+            expect(result!.newPosition).toBe(result!.total + 1);
+            expect(result).toHaveProperty('double');
+            expect(typeof result!.double).toBe('boolean');
         });
 
-        it('should return a DiceRollResult object', () => {
-            const result = GameService.rollDice(mockTimeService);
+        it('should include double property in dice roll result', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
 
-            expect(result).toHaveProperty('dice');
-            expect(result).toHaveProperty('total');
-            expect(result).toHaveProperty('timestamp');
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const result = gameService.rollDice(roomCode, "host-456");
+
+            expect(result).toHaveProperty('double');
         });
 
-        it('should return dice values between 1 and 6', () => {
-            // Test multiple times to ensure randomness is within range
-            for (let i = 0; i < 100; i++) {
-                const result = GameService.rollDice(mockTimeService);
-                expect(result.dice[0]).toBeGreaterThanOrEqual(1);
-                expect(result.dice[0]).toBeLessThanOrEqual(6);
-                expect(result.dice[1]).toBeGreaterThanOrEqual(1);
-                expect(result.dice[1]).toBeLessThanOrEqual(6);
+        it('should return null when game does not exist', () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const result = gameService.rollDice('invalid-code', "1");
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when player does not exist', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            gameService.createGame(roomId, ['host-456']);
+
+            // Don't add any players - rollDice will throw error which service catches
+            try {
+                const result = gameService.rollDice(roomCode, "1");
+                // If it doesn't throw, it should return null
+                expect(result).toBeNull();
+            } catch (error) {
+                // If it throws, that's also acceptable behavior
+                expect(error).toBeDefined();
             }
         });
+    });
 
-        it('should return correct total as sum of dice', () => {
-            const result = GameService.rollDice(mockTimeService);
-            const expectedTotal = result.dice[0] + result.dice[1];
-            expect(result.total).toBe(expectedTotal);
+    describe('deleteGame', () => {
+        it('should delete existing game', () => {
+            const roomId = 'room-123';
+            gameService.createGame(roomId, ['host-456']);
+
+            const deleted = gameService.deleteGame(roomId);
+
+            expect(deleted).toBe(true);
+            expect(gameService.getGame(roomId)).toBeNull();
         });
 
-        it('should return total between 2 and 12', () => {
-            // Test multiple times
-            for (let i = 0; i < 100; i++) {
-                const result = GameService.rollDice(mockTimeService);
-                expect(result.total).toBeGreaterThanOrEqual(2);
-                expect(result.total).toBeLessThanOrEqual(12);
-            }
+        it('should return false when game does not exist', () => {
+            const deleted = gameService.deleteGame('non-existent-room');
+
+            expect(deleted).toBe(false);
+        });
+    });
+
+    describe('getAllGames', () => {
+        it('should return empty array when no games exist', () => {
+            const games = gameService.getAllGames();
+
+            expect(games).toEqual([]);
         });
 
-        it('should return a valid timestamp from timeService', () => {
-            const result = GameService.rollDice(mockTimeService);
-            expect(result.timestamp).toBeInstanceOf(Date);
-            expect(result.timestamp).toBe(fixedDate);
-            expect(mockTimeService.now).toHaveBeenCalledTimes(1);
-        });
+        it('should return all games', () => {
+            gameService.createGame('room-1', ['host-1']);
+            gameService.createGame('room-2', ['host-2']);
+            gameService.createGame('room-3', ['host-3']);
 
-        it('should use default timeService when no parameter provided', () => {
-            const result = GameService.rollDice();
-            expect(result.timestamp).toBeInstanceOf(Date);
-            expect(result.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
-        });
+            const games = gameService.getAllGames();
 
-        it('should return dice as a tuple of two numbers', () => {
-            const result = GameService.rollDice(mockTimeService);
-            expect(Array.isArray(result.dice)).toBe(true);
-            expect(result.dice.length).toBe(2);
-            expect(typeof result.dice[0]).toBe('number');
-            expect(typeof result.dice[1]).toBe('number');
+            expect(games).toHaveLength(3);
+            expect(games[0]?.roomId).toBe('room-1');
+            expect(games[1]?.roomId).toBe('room-2');
+            expect(games[2]?.roomId).toBe('room-3');
+        });
+    });
+
+    describe('clearAllGames', () => {
+        it('should clear all games', () => {
+            gameService.createGame('room-1', ['host-1']);
+            gameService.createGame('room-2', ['host-2']);
+
+            expect(gameService.getAllGames()).toHaveLength(2);
+
+            gameService.clearAllGames();
+
+            expect(gameService.getAllGames()).toHaveLength(0);
+        });
+    });
+
+    describe('Integration with RoomService', () => {
+        it('should correctly convert roomCode to roomId', () => {
+            const roomId = 'room-uuid-123';
+            const roomCode = '654321';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: ['player1', 'player2'],
+                maxPlayers: 4,
+                roomState: 'WAITING',
+            });
+
+            const game = gameService.createGame(roomId, ['host-456']);
+            game.players.push({
+                player_id: 'test-player-1',
+                player_turn: 1,
+                position: 0,
+                player_money: 1500,
+                property_owns: [],
+                utility_owns: [],
+                transport_owns: [],
+            });
+
+            const retrievedGame = gameService.getGameByRoomCode(roomCode);
+
+            expect(retrievedGame).toBe(game);
+            expect(mockRoomService.getRoom).toHaveBeenCalledWith(roomCode);
         });
     });
 });

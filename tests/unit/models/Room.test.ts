@@ -286,6 +286,48 @@ describe('Room Model', () => {
     });
   });
 
+  describe('getGameNumber', () => {
+    it('should return 0 initially', () => {
+      const room = new Room('room-id', 'CODE01');
+
+      expect(room.getGameNumber()).toBe(0);
+    });
+
+    it('should return 1 after first game starts', () => {
+      const room = new Room('room-id', 'CODE01');
+      room.setGameId('game-1');
+
+      expect(room.getGameNumber()).toBe(1);
+    });
+
+    it('should increment game number for each new game', () => {
+      const room = new Room('room-id', 'CODE01');
+
+      room.setGameId('game-1');
+      expect(room.getGameNumber()).toBe(1);
+
+      room.setGameId('game-2');
+      expect(room.getGameNumber()).toBe(2);
+
+      room.setGameId('game-3');
+      expect(room.getGameNumber()).toBe(3);
+    });
+
+    it('should track game number independently for different rooms', () => {
+      const room1 = new Room('room-1', 'CODE01');
+      const room2 = new Room('room-2', 'CODE02');
+
+      room1.setGameId('game-1-1');
+      room1.setGameId('game-1-2');
+      expect(room1.getGameNumber()).toBe(2);
+
+      room2.setGameId('game-2-1');
+      expect(room2.getGameNumber()).toBe(1);
+
+      expect(room1.getGameNumber()).toBe(2); // Shouldn't be affected by room2
+    });
+  });
+
   describe('getPlayerCount', () => {
     it('should return 0 for empty room', () => {
       const room = new Room('room-id', 'CODE01');

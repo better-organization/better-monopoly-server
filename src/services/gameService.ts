@@ -1,108 +1,96 @@
 // Game Service
-// TODO: Implement Monopoly game logic
+// GameService singleton - manages all game instances
+// Similar to RoomService pattern
 
-import { DiceRollResult } from '../types/game';
-import { ITimeService, timeService } from './timeService';
-import { randomUUID } from 'node:crypto';
+import { Game } from '../models/Game';
+import { DiceRollResult, GameStateResponse } from '../types/game';
+import { RoomService } from './roomService';
 
-export interface Player {
-  id: string;
-  name: string;
-  position: number;
-  money: number;
-  properties: string[];
-  inJail: boolean;
-  jailTurns: number;
-}
-
-export interface Property {
-  id: string;
-  name: string;
-  price: number;
-  rent: number;
-  owner?: string;
-  houses: number;
-  hotels: number;
-}
-
-export interface Game {
-  id: string;
-  players: Player[];
-  currentPlayer: number;
-  status: 'waiting' | 'active' | 'finished';
-  winner?: string;
-  board: Property[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface GameMove {
-  playerId: string;
-  type: 'roll' | 'buy' | 'pay' | 'trade';
-  data: unknown;
-}
-
+/**
+ * GameService - manages all game instances
+ * Singleton pattern for managing games by roomId
+ */
 export class GameService {
-  private static games: Map<string, any> = new Map();
+  private static instance: GameService;
+  private games: Map<string, Game>;
 
-  // Implement game creation
-  static async createGame(playerIds: string[]) {
-    const gameId = randomUUID();
+  private constructor() {
+    this.games = new Map();
+  }
 
-    // Initialize players with starting money
-    const players = playerIds;
-    // Initialize board
-    // Create game object
-    const game = {
-      id: gameId,
-      players,
-    };
+  /**
+   * Get singleton instance
+   */
+  static getInstance(): GameService {
+    if (!GameService.instance) {
+      GameService.instance = new GameService();
+    }
 
-    // Store game in memory
-    this.games.set(gameId, game);
+    return GameService.instance;
+  }
 
-    console.log('Game created:', gameId, 'with players:', playerIds);
+  /**
+   * Create a new game for a room with a single player (for backwards compatibility)
+   */
+  createGame(roomId: string, players: string[], gameNumber: number = 1): Game {
+    const game = new Game(roomId, players, gameNumber);
+    this.games.set(roomId, game);
     return game;
   }
 
-  // TODO: Implement player joining
-  static async joinGame(_gameId: string, _playerId: string): Promise<Game> {
-    console.log('joinGame called with:', _gameId, _playerId);
-    return {} as Game;
+  /**
+   * Get game by roomId
+   */
+  getGame(roomId: string): Game | null {
+    return this.games.get(roomId) || null;
   }
 
-  // TODO: Implement game state retrieval
-  static async getGame(_gameId: string): Promise<Game | null> {
-    console.log('getGame called with:', _gameId);
-    return null;
+  /**
+   * Get game by roomCode (converts roomCode to roomId first)
+   */
+  getGameByRoomCode(roomCode: string): Game | null {
+    const roomService = RoomService.getInstance();
+    const room = roomService.getRoom(roomCode);
+
+    if (!room) return null;
+
+    return this.getGame(room.roomId);
   }
 
-  // TODO: Implement move processing
-  static async processMove(_gameId: string, _move: GameMove): Promise<Game> {
-    console.log('processMove called with:', _gameId, _move);
-    return {} as Game;
+  /**
+   * Get game state by roomCode
+   */
+  getGameState(roomCode: string): GameStateResponse | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.getGameState() : null;
   }
 
-  // Dice rolling with structured result
-  static rollDice(
-    timeServiceInstance: ITimeService = timeService
-  ): DiceRollResult {
-    const dice: [number, number] = [
-      Math.floor(Math.random() * 6) + 1,
-      Math.floor(Math.random() * 6) + 1,
-    ];
-    const total = dice[0] + dice[1];
-    const timestamp = timeServiceInstance.now();
-
-    return {
-      dice,
-      total,
-      timestamp,
-    };
+  /**
+   * Roll dice action of a specific game by roomCode
+   */
+  rollDice(roomCode: string, userId: string): DiceRollResult | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.rollDiceAndUpdatePosition(userId) : null;
   }
 
-  // TODO: Implement board initialization
-  static initializeBoard(): Property[] {
-    return [];
+  /**
+   * Delete a game
+   */
+  deleteGame(roomId: string): boolean {
+    return this.games.delete(roomId);
+  }
+
+  /**
+   * Get all games (for debugging)
+   */
+  getAllGames(): Game[] {
+    return Array.from(this.games.values());
+  }
+
+  /**
+   * Clear all games (for testing)
+   */
+  clearAllGames(): void {
+    this.games.clear();
   }
 }
