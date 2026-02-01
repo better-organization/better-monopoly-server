@@ -37,7 +37,7 @@ describe('Game Model', () => {
             expect(game.players[0]).toEqual({
                 player_id: mockPlayerIds[0],
                 player_turn: 0,
-                position: 1,
+                position: 0,
                 player_money: 1500,
                 property_owns: [],
                 utility_owns: [],
@@ -46,7 +46,7 @@ describe('Game Model', () => {
             expect(game.players[1]).toEqual({
                 player_id: mockPlayerIds[1],
                 player_turn: 1,
-                position: 1,
+                position: 0,
                 player_money: 1500,
                 property_owns: [],
                 utility_owns: [],
@@ -70,7 +70,7 @@ describe('Game Model', () => {
             expect(state.players[0]).toEqual({
                 player_id: mockPlayerIds[0],
                 player_turn: 0,
-                position: 1,
+                position: 0,
                 player_money: 1500,
                 property_owns: [],
                 utility_owns: [],
@@ -111,13 +111,39 @@ describe('Game Model', () => {
         });
     });
 
+    describe('getBoardInfo', () => {
+        it('should return board ID and version from game settings', () => {
+            const boardInfo = game.getBoardInfo();
+
+            expect(boardInfo).toBeDefined();
+            expect(boardInfo.boardId).toBe('european_football_club_giants');
+            expect(boardInfo.version).toBe('1.0');
+        });
+
+        it('should return correct structure', () => {
+            const boardInfo = game.getBoardInfo();
+
+            expect(boardInfo).toHaveProperty('boardId');
+            expect(boardInfo).toHaveProperty('version');
+            expect(typeof boardInfo.boardId).toBe('string');
+            expect(typeof boardInfo.version).toBe('string');
+        });
+
+        it('should return board info that matches game settings', () => {
+            const boardInfo = game.getBoardInfo();
+
+            expect(boardInfo.boardId).toBe(game.gameSettings.board);
+            expect(boardInfo.version).toBe(game.gameSettings.version);
+        });
+    });
+
     describe('updatePlayerPosition', () => {
         // Players are already initialized in the main beforeEach
 
         it('should update player position correctly', () => {
             const newPosition = game.updatePlayerPosition(mockPlayerIds[0]!, 7);
-            expect(newPosition).toBe(8);
-            expect(game.players[0]!.position).toBe(8);
+            expect(newPosition).toBe(7);
+            expect(game.players[0]!.position).toBe(7);
         });
 
         it('should wrap around at position 40', () => {
@@ -175,7 +201,7 @@ describe('Game Model', () => {
             expect(result.dice[1]).toBeLessThanOrEqual(6);
             expect(result.total).toBe(result.dice[0] + result.dice[1]);
             expect(result.timestamp).toBeInstanceOf(Date);
-            expect(result.newPosition).toBe(result.total + 1);
+            expect(result.newPosition).toBe(result.total);
         });
 
         it('should update player position after rolling', () => {
@@ -320,8 +346,8 @@ describe('Game Model', () => {
         it('should update only the specified player position', () => {
             game.updatePlayerPosition(mockPlayerIds[0]!, 5);
 
-            expect(game.players[0]!.position).toBe(6);
-            expect(game.players[1]!.position).toBe(1);
+            expect(game.players[0]!.position).toBe(5);
+            expect(game.players[1]!.position).toBe(0);
         });
 
         it('should allow different players to roll independently', () => {

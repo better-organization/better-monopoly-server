@@ -1,13 +1,16 @@
 import { GameService } from '../../../src/services/gameService';
 import { RoomService } from '../../../src/services/roomService';
+import { BoardService } from '../../../src/services/boardService';
 import { Game } from '../../../src/models/Game';
 
-// Mock RoomService
+// Mock RoomService and BoardService
 jest.mock('../../../src/services/roomService');
+jest.mock('../../../src/services/boardService');
 
 describe('GameService', () => {
     let gameService: GameService;
     let mockRoomService: jest.Mocked<RoomService>;
+    let mockBoardService: jest.Mocked<typeof BoardService>;
 
     beforeEach(() => {
         // Clear all instances and calls to constructor and all methods:
@@ -19,12 +22,18 @@ describe('GameService', () => {
         // Clear all games before each test
         gameService.clearAllGames();
 
+        // Clear all cached boards before each test
+        gameService.clearAllBoards();
+
         // Setup mock RoomService
         mockRoomService = {
             getRoom: jest.fn(),
         } as any;
 
         (RoomService.getInstance as jest.Mock).mockReturnValue(mockRoomService);
+
+        // Setup mock BoardService
+        mockBoardService = BoardService as jest.Mocked<typeof BoardService>;
     });
 
     describe('Singleton Pattern', () => {
@@ -189,6 +198,445 @@ describe('GameService', () => {
         });
     });
 
+    describe('getBoardInfo', () => {
+        it('should return board info when game exists', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const boardInfo = gameService.getBoardInfo(roomCode);
+
+            expect(boardInfo).toBeDefined();
+            expect(boardInfo?.boardId).toBe('european_football_club_giants');
+            expect(boardInfo?.version).toBe('1.0');
+        });
+
+        it('should return null when game does not exist', () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const boardInfo = gameService.getBoardInfo('invalid-code');
+
+            expect(boardInfo).toBeNull();
+        });
+
+        it('should return null when room exists but game does not', () => {
+            mockRoomService.getRoom.mockReturnValue({
+                roomId: 'room-123',
+                roomCode: '123456',
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const boardInfo = gameService.getBoardInfo('123456');
+
+            expect(boardInfo).toBeNull();
+        });
+
+        it('should return board info with correct structure', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const boardInfo = gameService.getBoardInfo(roomCode);
+
+            expect(boardInfo).toHaveProperty('boardId');
+            expect(boardInfo).toHaveProperty('version');
+            expect(typeof boardInfo?.boardId).toBe('string');
+            expect(typeof boardInfo?.version).toBe('string');
+        });
+    });
+
+    describe('getBoard', () => {
+        it('should return board when game exists', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const board = await gameService.getBoard(roomCode);
+
+            expect(board).toBeDefined();
+            expect(board?.id).toBe('european_football_club_giants');
+            expect(board?.version).toBe('1.0');
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledWith(
+                'european_football_club_giants',
+                '1.0'
+            );
+        });
+
+        it('should return null when game does not exist', async () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const board = await gameService.getBoard('invalid-code');
+
+            expect(board).toBeNull();
+            expect(mockBoardService.getBoardLayout).not.toHaveBeenCalled();
+        });
+
+        it('should return null when room exists but game does not', async () => {
+            mockRoomService.getRoom.mockReturnValue({
+                roomId: 'room-123',
+                roomCode: '123456',
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const board = await gameService.getBoard('123456');
+
+            expect(board).toBeNull();
+            expect(mockBoardService.getBoardLayout).not.toHaveBeenCalled();
+        });
+
+        it('should return board from BoardService with correct parameters', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                cells: [{ index: 1, name: 'Cell 1' }],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const board = await gameService.getBoard(roomCode);
+
+            expect(board).toEqual(mockBoard);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+        });
+
+        it('should return null when BoardService returns null', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(null);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const board = await gameService.getBoard(roomCode);
+
+            expect(board).toBeNull();
+        });
+
+        // Caching tests
+        it('should cache board after first retrieval and not call BoardService again', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [{ index: 1, name: 'Cell 1' }],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            // First call - should fetch from BoardService
+            const board1 = await gameService.getBoard(roomCode);
+            expect(board1).toEqual(mockBoard);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Second call - should return cached board
+            const board2 = await gameService.getBoard(roomCode);
+            expect(board2).toEqual(mockBoard);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1); // Still 1, not called again
+        });
+
+        it('should return same cached board instance on subsequent calls', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const board1 = await gameService.getBoard(roomCode);
+            const board2 = await gameService.getBoard(roomCode);
+
+            // Should be the exact same instance
+            expect(board1).toBe(board2);
+        });
+
+        it('should share cached board across different games with same boardId and version', async () => {
+            const roomId1 = 'room-123';
+            const roomCode1 = '123456';
+            const roomId2 = 'room-456';
+            const roomCode2 = '654321';
+
+            // Setup first game
+            mockRoomService.getRoom.mockImplementation((code: string) => {
+                if (code === roomCode1) {
+                    return {
+                        roomId: roomId1,
+                        roomCode: roomCode1,
+                        players: [],
+                        maxPlayers: 4,
+                        roomState: "WAITING",
+                    };
+                } else if (code === roomCode2) {
+                    return {
+                        roomId: roomId2,
+                        roomCode: roomCode2,
+                        players: [],
+                        maxPlayers: 4,
+                        roomState: "WAITING",
+                    };
+                }
+                return undefined;
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId1, ['host-1']);
+            gameService.createGame(roomId2, ['host-2']);
+
+            // First game gets board
+            const board1 = await gameService.getBoard(roomCode1);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Second game should use cached board
+            const board2 = await gameService.getBoard(roomCode2);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1); // Still 1
+            expect(board1).toBe(board2); // Same instance
+        });
+
+        it('should create separate cache entries for different boardId/version combinations', async () => {
+            const roomId1 = 'room-123';
+            const roomCode1 = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId: roomId1,
+                roomCode: roomCode1,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard1 = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            const mockBoard2 = {
+                id: 'european_football_club_giants',
+                version: '2.0',
+                edition: 'European Football Club Giants v2',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn()
+                .mockResolvedValueOnce(mockBoard1)
+                .mockResolvedValueOnce(mockBoard2);
+
+            // Create game with version 1.0
+            const game1 = gameService.createGame(roomId1, ['host-1']);
+            const board1 = await gameService.getBoard(roomCode1);
+            expect(board1?.version).toBe('1.0');
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Manually change game's board version to 2.0 for testing
+            game1.gameSettings.board = 'european_football_club_giants';
+            game1.gameSettings.version = '2.0';
+
+            // Get board with different version
+            const board2 = await gameService.getBoard(roomCode1);
+            expect(board2?.version).toBe('2.0');
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(2); // Called twice for different versions
+            expect(board1).not.toBe(board2); // Different instances
+        });
+
+        it('should persist cached boards across multiple getBoard calls from different room codes', async () => {
+            const roomId1 = 'room-123';
+            const roomCode1 = '123456';
+            const roomId2 = 'room-456';
+            const roomCode2 = '654321';
+            const roomId3 = 'room-789';
+            const roomCode3 = '987654';
+
+            mockRoomService.getRoom.mockImplementation((code: string) => {
+                const roomMap: Record<string, any> = {
+                    [roomCode1]: { roomId: roomId1, roomCode: roomCode1, players: [], maxPlayers: 4, roomState: "WAITING" },
+                    [roomCode2]: { roomId: roomId2, roomCode: roomCode2, players: [], maxPlayers: 4, roomState: "WAITING" },
+                    [roomCode3]: { roomId: roomId3, roomCode: roomCode3, players: [], maxPlayers: 4, roomState: "WAITING" },
+                };
+                return roomMap[code];
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId1, ['host-1']);
+            gameService.createGame(roomId2, ['host-2']);
+            gameService.createGame(roomId3, ['host-3']);
+
+            // First call caches the board
+            const board1 = await gameService.getBoard(roomCode1);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Subsequent calls from different rooms should use cache
+            const board2 = await gameService.getBoard(roomCode2);
+            const board3 = await gameService.getBoard(roomCode3);
+
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1); // Still 1
+            expect(board1).toBe(board2);
+            expect(board2).toBe(board3);
+        });
+
+        it('should not cache when BoardService returns null', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            // First call returns null
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(null);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            const board1 = await gameService.getBoard(roomCode);
+            expect(board1).toBeNull();
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Second call should try BoardService again (not cached)
+            const board2 = await gameService.getBoard(roomCode);
+            expect(board2).toBeNull();
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(2); // Called again
+        });
+
+        it('should use correct cache key format (boardId + version)', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'test_board',
+                version: '1.5',
+                edition: 'Test Board',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            const game = gameService.createGame(roomId, ['host-456']);
+            game.gameSettings.board = 'test_board';
+            game.gameSettings.version = '1.5';
+
+            await gameService.getBoard(roomCode);
+
+            // Verify BoardService was called with correct parameters
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledWith('test_board', '1.5');
+        });
+    });
+
     describe('rollDice', () => {
         it('should roll dice and update position', () => {
             const roomId = 'room-123';
@@ -210,7 +658,7 @@ describe('GameService', () => {
             expect(result?.dice).toHaveLength(2);
             expect(result?.total).toBeGreaterThanOrEqual(2);
             expect(result?.total).toBeLessThanOrEqual(12);
-            expect(result!.newPosition).toBe(result!.total + 1);
+            expect(result!.newPosition).toBe(result!.total);
             expect(result).toHaveProperty('double');
             expect(typeof result!.double).toBe('boolean');
         });
@@ -317,6 +765,79 @@ describe('GameService', () => {
             gameService.clearAllGames();
 
             expect(gameService.getAllGames()).toHaveLength(0);
+        });
+    });
+
+    describe('clearAllBoards', () => {
+        it('should clear all cached boards', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId, ['host-456']);
+
+            // First call caches the board
+            await gameService.getBoard(roomCode);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Second call uses cache
+            await gameService.getBoard(roomCode);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+
+            // Clear boards cache
+            gameService.clearAllBoards();
+
+            // Third call should fetch again since cache was cleared
+            await gameService.getBoard(roomCode);
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not affect games when clearing boards', async () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [],
+                maxPlayers: 4,
+                roomState: "WAITING",
+            });
+
+            const mockBoard = {
+                id: 'european_football_club_giants',
+                version: '1.0',
+                edition: 'European Football Club Giants',
+                cells: [],
+            };
+
+            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+
+            gameService.createGame(roomId, ['host-456']);
+            await gameService.getBoard(roomCode);
+
+            // Clear boards cache
+            gameService.clearAllBoards();
+
+            // Games should still exist
+            expect(gameService.getAllGames()).toHaveLength(1);
+            expect(gameService.getGame(roomId)).toBeDefined();
         });
     });
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { GameController } from '../../../src/controllers/gameController';
 import { GameService } from '../../../src/services/gameService';
 import { IUserTokenPayload } from '../../../src/utils/TokenUtil';
+import { Board } from '../../../src/models/Board';
 
 // Mock dependencies
 jest.mock('../../../src/services/gameService');
@@ -17,6 +18,7 @@ describe('GameController', () => {
     let mockResponse: Partial<Response>;
     let jsonMock: jest.Mock;
     let statusMock: jest.Mock;
+    let board: jest.Mocked<Board>;
 
     beforeEach(() => {
         // Reset all mocks
@@ -27,6 +29,7 @@ describe('GameController', () => {
             getGameState: jest.fn(),
             rollDice: jest.fn(),
             getGame: jest.fn(),
+            getBoard: jest.fn(),
             createGame: jest.fn(),
             deleteGame: jest.fn(),
             getAllGames: jest.fn(),
@@ -394,6 +397,107 @@ describe('GameController', () => {
                     timestamp: '2024-01-01T00:00:00.000Z',
                     newPosition: 3,
                 },
+            });
+        });
+    });
+
+    describe('getBoard', () => {
+        beforeEach(() => {
+            // Mock GameService.getBoard
+            mockGameService.getBoard = jest.fn();
+            board = jest.fn() as unknown as jest.Mocked<Board>;
+
+        });
+
+        it('should return board for user game successfully', async () => {
+          mockRequest.user = {
+            username: 'testUser',
+            userId: 'testUserId',
+            roomCode: 'ABC123',
+          };
+          mockGameService.getBoard.mockResolvedValue(board);
+
+          await GameController.getBoard(
+              mockRequest as Request,
+              mockResponse as Response
+          );
+
+          expect(mockGameService.getBoard).toHaveBeenCalledWith('ABC123');
+          expect(statusMock).toHaveBeenCalledWith(200);
+          expect(jsonMock).toHaveBeenCalledWith({
+              success: true,
+              data: board,
+          });
+        });
+
+        it('should return 400 when userId is missing', async () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: '',
+                roomCode: 'ABC123',
+            };
+
+            await GameController.getBoard(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.getBoard).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when roomCode is missing', async () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: 'user-123',
+            };
+
+            await GameController.getBoard(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.getBoard).not.toHaveBeenCalled();
+        });
+
+        it('should return 404 when board not found', async () => {
+            mockGameService.getBoard.mockResolvedValue(null);
+
+            await GameController.getBoard(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Board not found',
+            });
+        });
+
+        it('should return 500 when an error occurs', async () => {
+            mockGameService.getBoard.mockRejectedValue(
+                new Error('Service error')
+            );
+
+            await GameController.getBoard(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'An error occurred while retrieving board',
             });
         });
     });

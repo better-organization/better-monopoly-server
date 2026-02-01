@@ -355,6 +355,184 @@ describe('Game Routes', () => {
     });
   });
 
+  describe('GET /api/game/board - Get board for user\'s game', () => {
+    let hostCookies: string[];
+    let player2Cookies: string[];
+    let roomCode: string;
+
+    beforeEach(async () => {
+      // Register and login host
+      hostCookies = await registerAndLogin('Host_Board', 'host_board');
+
+      // Register and login player 2
+      player2Cookies = await registerAndLogin('Player_Board_2', 'player_board_2');
+
+      const response = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', hostCookies)
+        .send();
+
+      roomCode = response.body.data?.roomCode || '';
+
+      // Update hostCookies to include the game_token cookie from room creation
+      const roomCookies = getCookies(response.headers);
+      hostCookies = [...hostCookies, ...roomCookies];
+
+      // Player 2 joins
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', player2Cookies)
+        .send({ roomCode });
+
+      // Update player2Cookies to include the game_token cookie from joining
+      const joinCookies = getCookies(joinResponse.headers);
+      player2Cookies = [...player2Cookies, ...joinCookies];
+
+      // Start game
+      await request(app).post('/api/room/start').set('Cookie', hostCookies);
+    });
+
+    it('should get board for authenticated user in a game', async () => {
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', hostCookies);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data).toHaveProperty('version');
+      expect(response.body.data).toHaveProperty('cells');
+      expect(Array.isArray(response.body.data.cells)).toBe(true);
+    });
+
+    it('should return board with correct boardId from game settings', async () => {
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', hostCookies);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.id).toBe('european_football_club_giants');
+      expect(response.body.data.version).toBe('1.0');
+    });
+
+    it('should return board with all required properties', async () => {
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', hostCookies);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveProperty('edition');
+      expect(response.body.data).toHaveProperty('currency');
+      expect(response.body.data).toHaveProperty('currency_symbol');
+      expect(response.body.data).toHaveProperty('terms');
+      expect(response.body.data.cells.length).toBeGreaterThan(0);
+    });
+
+    it('should work for player 2 in the same game', async () => {
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', player2Cookies);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe('european_football_club_giants');
+    });
+
+    it('should return same board for all players in the same game', async () => {
+      const hostResponse = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', hostCookies);
+
+      const player2Response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', player2Cookies);
+
+      expect(hostResponse.status).toBe(200);
+      expect(player2Response.status).toBe(200);
+      expect(hostResponse.body.data.id).toBe(player2Response.body.data.id);
+      expect(hostResponse.body.data.version).toBe(player2Response.body.data.version);
+      expect(hostResponse.body.data.cells.length).toBe(player2Response.body.data.cells.length);
+    });
+
+    it('should return board with flattened cell properties', async () => {
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', hostCookies);
+
+      expect(response.status).toBe(200);
+      const cells = response.body.data.cells;
+
+      // Check that cells have expected structure
+      const firstCell = cells[0];
+      expect(firstCell).toHaveProperty('index');
+      expect(firstCell).toHaveProperty('name');
+      expect(firstCell).toHaveProperty('cell_type');
+    });
+
+    it('should return 401 when not authenticated', async () => {
+      const response = await request(app).get('/api/game/board');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 400 when user has no roomCode in token', async () => {
+      // Create user without joining a room
+      const cookies = await registerAndLogin('User_No_Room', 'user_no_room_board');
+
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', cookies);
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Required Property not found in token');
+    });
+
+    it('should return 404 when game does not exist for roomCode', async () => {
+      // Register and login user
+      const cookies = await registerAndLogin('User_No_Game', 'user_no_game_board');
+
+      // Create room but don't start game - this won't work as expected
+      // Instead, we'll manually create a token with invalid roomCode
+      // For now, we'll skip this specific test as it requires manual token manipulation
+
+      // Alternatively, we can create a room, start game, then delete the game
+      const createResponse = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', cookies)
+        .send();
+
+      const roomCode = createResponse.body.data.roomCode;
+      const updatedCookies = [...cookies, ...getCookies(createResponse.headers)];
+
+      // Join another player
+      const player2Cookies = await registerAndLogin('Player_No_Game_2', 'player_no_game_2');
+      await request(app)
+        .post('/api/room/join')
+        .set('Cookie', player2Cookies)
+        .send({ roomCode });
+
+      // Start game
+      await request(app).post('/api/room/start').set('Cookie', updatedCookies);
+
+      // Now delete the game
+      const roomService = RoomService.getInstance();
+      const room = roomService.getRoom(roomCode);
+      if (room) {
+        GameService.getInstance().deleteGame(room.roomId);
+      }
+
+      // Try to get board
+      const response = await request(app)
+        .get('/api/game/board')
+        .set('Cookie', updatedCookies);
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Board not found');
+    });
+  });
+
   describe('404 handling for undefined game routes', () => {
     it('should return 404 for unknown game routes', async () => {
       const response = await request(app).get('/api/game/unknown');
