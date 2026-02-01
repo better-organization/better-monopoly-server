@@ -3,8 +3,10 @@
 // Similar to RoomService pattern
 
 import { Game } from '../models/Game';
+import { Board } from '../models/Board';
 import { DiceRollResult, GameStateResponse } from '../types/game';
 import { RoomService } from './roomService';
+import { BoardService } from './boardService';
 
 /**
  * GameService - manages all game instances
@@ -13,6 +15,7 @@ import { RoomService } from './roomService';
 export class GameService {
   private static instance: GameService;
   private games: Map<string, Game>;
+  private static boards: Map<string, Board> = new Map();
 
   private constructor() {
     this.games = new Map();
@@ -66,6 +69,43 @@ export class GameService {
   }
 
   /**
+   * Get board info by roomCode
+   */
+  getBoardInfo(roomCode: string): { boardId: string; version: string } | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.getBoardInfo() : null;
+  }
+
+  /**
+   * Get board layout by roomCode
+   * Uses BoardService internally to retrieve the board configuration
+   */
+  async getBoard(roomCode: string): Promise<Board | null> {
+    const boardInfo = this.getBoardInfo(roomCode);
+    if (!boardInfo) {
+      return null;
+    }
+
+    const key = boardInfo.boardId + boardInfo.version;
+
+    if (GameService.boards.has(key)) {
+      return GameService.boards.get(key) || null;
+    }
+
+    const newBoard = await BoardService.getBoardLayout(
+      boardInfo.boardId,
+      boardInfo.version
+    );
+
+    if (newBoard === null) {
+      return null;
+    }
+
+    GameService.boards.set(key, newBoard);
+    return newBoard;
+  }
+
+  /**
    * Roll dice action of a specific game by roomCode
    */
   rollDice(roomCode: string, userId: string): DiceRollResult | null {
@@ -92,5 +132,12 @@ export class GameService {
    */
   clearAllGames(): void {
     this.games.clear();
+  }
+
+  /**
+   * Clear all cached boards (for testing)
+   */
+  clearAllBoards(): void {
+    GameService.boards.clear();
   }
 }

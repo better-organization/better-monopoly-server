@@ -171,6 +171,71 @@ router.get('/state', requireAuth, GameController.getGameState);
 
 /**
  * @swagger
+ * /api/game/board:
+ *   get:
+ *     summary: Get board layout for user's game
+ *     description: Retrieve the layout and configuration for the board assigned to the user's game. RoomCode is retrieved from user token (cookie), boardId and version are retrieved from the game settings, and board data is fetched via GameService (which uses BoardService internally).
+ *     tags: [Game]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Board layout retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   description: Complete board configuration with cells and metadata
+ *       400:
+ *         description: Missing required properties in token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Required Property not found in token"
+ *       404:
+ *         description: Game or board not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Board not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while retrieving board"
+ */
+router.get('/board', requireAuth, GameController.getBoard);
+
+/**
+ * @swagger
  * /api/game/board/{boardId}/version/{version}:
  *   get:
  *     summary: Get board layout

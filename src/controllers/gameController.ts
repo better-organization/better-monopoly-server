@@ -99,4 +99,46 @@ export class GameController {
       });
     }
   }
+
+  /**
+   * GET /api/game/board
+   * Get board layout for the user's assigned game
+   * Gets roomCode from user token and retrieves board info from the game
+   */
+  static async getBoard(req: Request, res: Response): Promise<void> {
+    try {
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
+
+      if (!userId || !roomCode) {
+        res.status(400).json({
+          success: false,
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
+        });
+        return;
+      }
+
+      const gameService = GameService.getInstance();
+      const board = await gameService.getBoard(roomCode);
+
+      if (!board) {
+        res.status(404).json({
+          success: false,
+          message: 'Board not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: board,
+      });
+    } catch (error) {
+      console.error('Get board for user game error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while retrieving board',
+      });
+    }
+  }
 }

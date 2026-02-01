@@ -17,6 +17,8 @@ export interface IPlayer {
 
 // Game settings interface
 export interface GameSettings {
+  board: string;
+  version: string;
   startingMoney: number;
   passGoMoney: number;
   jailFine: number;
@@ -26,6 +28,8 @@ export interface GameSettings {
 
 // Default game settings
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
+  board: 'european_football_club_giants',
+  version: '1.0',
   startingMoney: 1500,
   passGoMoney: 200,
   jailFine: 50,
@@ -68,7 +72,7 @@ export class Game {
     this.players = playerIds.map((playerId, index) => ({
       player_id: playerId,
       player_turn: index,
-      position: 1,
+      position: 0,
       player_money: this.gameSettings.startingMoney,
       property_owns: [],
       utility_owns: [],
@@ -91,6 +95,16 @@ export class Game {
         utility_owns: player.utility_owns,
         transport_owns: player.transport_owns,
       })),
+    };
+  }
+
+  /**
+   * Get board information for this game
+   */
+  getBoardInfo(): { boardId: string; version: string } {
+    return {
+      boardId: this.gameSettings.board,
+      version: this.gameSettings.version,
     };
   }
 
@@ -141,7 +155,6 @@ export class Game {
 
   rollDice() {
     const dice: [number, number] = [Game.diceResult(), Game.diceResult()];
-    console.log(dice, Game.diceResult(), Game.diceResult);
     const total = dice[0] + dice[1];
     const double = dice[0] === dice[1];
     return { dice, total, double };
