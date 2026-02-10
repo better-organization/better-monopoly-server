@@ -115,7 +115,7 @@ export class GameService {
 
   endTurn(roomCode: string, userId: string): boolean {
     const game = this.getGameByRoomCode(roomCode);
-    return game?.endTurn(userId)?? false;
+    return game?.endTurn(userId) ?? false;
   }
 
   /**

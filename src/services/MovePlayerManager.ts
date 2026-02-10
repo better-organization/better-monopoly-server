@@ -16,16 +16,15 @@ export class MovePlayerManager {
     }
 
     if (!state.lastDice) {
-      throw new MovePlayerManagerError(
-        'Cannot move player without dice roll'
-      );
+      throw new MovePlayerManagerError('Cannot move player without dice roll');
     }
 
     const currentPlayerIndex = state.turn.currentPlayerIndex;
     const currentPlayer = state.players[currentPlayerIndex];
-    currentPlayer!.position = (currentPlayer!.position + state.lastDice.total) % 40;
+    currentPlayer!.position =
+      (currentPlayer!.position + state.lastDice.total) % 40;
 
-    return {...state, players: state.players.map(player => ({...player})) };
+    return { ...state, players: state.players.map(player => ({ ...player })) };
   }
 
   static currentPlayerPosition(state: GameState): number {

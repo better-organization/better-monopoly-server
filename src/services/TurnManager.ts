@@ -5,7 +5,7 @@ export const ALLOWED_ACTIONS: Record<Phase, Action[]> = {
   [Phase.MOVE_PLAYER]: [Action.MOVE_PLAYER],
   [Phase.RESOLVE_TILE]: [Action.RESOLVE_TILE],
   [Phase.END_TURN]: [Action.END_TURN],
-  [Phase.GAME_OVER]: []
+  [Phase.GAME_OVER]: [],
 };
 
 export class TurnManagerError extends Error {
@@ -16,14 +16,13 @@ export class TurnManagerError extends Error {
 }
 
 export class TurnManager {
-
   static getCurrentPlayerId(state: GameState): string {
     return state.players[state.turn.currentPlayerIndex]!.player_id;
   }
 
   static assertPlayerTurn(state: GameState, playerId: string) {
     if (this.getCurrentPlayerId(state) !== playerId) {
-      throw new TurnManagerError("Not your turn");
+      throw new TurnManagerError('Not your turn');
     }
   }
 
@@ -52,7 +51,7 @@ export class TurnManager {
     return {
       ...state,
       phase: flow[state.phase],
-      allowedActions: this.allowedActions(flow[state.phase])
+      allowedActions: this.allowedActions(flow[state.phase]),
     };
   }
 
@@ -64,8 +63,8 @@ export class TurnManager {
       ...state,
       turn: {
         currentPlayerIndex: nextIndex,
-        round: state.turn.round + (nextIndex === 0 ? 1 : 0)
-      }
+        round: state.turn.round + (nextIndex === 0 ? 1 : 0),
+      },
     });
   }
 }
