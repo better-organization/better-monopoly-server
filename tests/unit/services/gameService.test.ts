@@ -81,7 +81,7 @@ describe('GameService', () => {
             const game = gameService.createGame('room-123', playerIds);
 
             expect(game.maxPlayers).toBe(3);
-            expect(game.players).toHaveLength(3);
+            expect(game.gameState.players).toHaveLength(3);
         });
 
         it('should store the game in the games map', () => {
@@ -180,7 +180,7 @@ describe('GameService', () => {
             const game = gameService.createGame(roomId, ['host-456']);
 
             // Modify the existing player's position for testing
-            game.players[0]!.position = 5;
+            game.gameState.players[0]!.position = 5;
 
             const state = gameService.getGameState(roomCode);
 
@@ -841,6 +841,204 @@ describe('GameService', () => {
         });
     });
 
+    describe('endTurn', () => {
+        it('should end turn successfully for current player', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const playerId = 'host-456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [playerId, 'player-2'],
+                maxPlayers: 2,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [playerId, 'player-2']);
+
+            // Roll dice first to move to END_TURN phase
+            gameService.rollDice(roomCode, playerId);
+
+            const result = gameService.endTurn(roomCode, playerId);
+
+            expect(result).toBe(true);
+        });
+
+        it('should return false when game does not exist', () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const result = gameService.endTurn('invalid-code', 'player-1');
+
+            expect(result).toBe(false);
+        });
+
+        it('should return false when room is not found', () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
+
+            const result = gameService.endTurn('non-existent-room', 'player-1');
+
+            expect(result).toBe(false);
+        });
+
+        it('should advance to next player after ending turn', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const player1 = 'host-456';
+            const player2 = 'player-789';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [player1, player2],
+                maxPlayers: 2,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [player1, player2]);
+
+            // Player 1 rolls dice and ends turn
+            gameService.rollDice(roomCode, player1);
+            gameService.endTurn(roomCode, player1);
+
+            const gameState = gameService.getGameState(roomCode);
+            expect(gameState?.turn.currentPlayerIndex).toBe(1);
+        });
+
+        it('should handle multiple players turn rotation', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const player1 = 'player-1';
+            const player2 = 'player-2';
+            const player3 = 'player-3';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [player1, player2, player3],
+                maxPlayers: 3,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [player1, player2, player3]);
+
+            // Player 1's turn
+            gameService.rollDice(roomCode, player1);
+            gameService.endTurn(roomCode, player1);
+
+            let gameState = gameService.getGameState(roomCode);
+            expect(gameState?.turn.currentPlayerIndex).toBe(1);
+
+            // Player 2's turn
+            gameService.rollDice(roomCode, player2);
+            gameService.endTurn(roomCode, player2);
+
+            gameState = gameService.getGameState(roomCode);
+            expect(gameState?.turn.currentPlayerIndex).toBe(2);
+
+            // Player 3's turn
+            gameService.rollDice(roomCode, player3);
+            gameService.endTurn(roomCode, player3);
+
+            // Should wrap back to player 1
+            gameState = gameService.getGameState(roomCode);
+            expect(gameState?.turn.currentPlayerIndex).toBe(0);
+        });
+
+        it('should increment round when completing full turn cycle', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const player1 = 'player-1';
+            const player2 = 'player-2';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [player1, player2],
+                maxPlayers: 2,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [player1, player2]);
+
+            const initialRound = gameService.getGameState(roomCode)?.turn.round;
+
+            // Complete one full round
+            gameService.rollDice(roomCode, player1);
+            gameService.endTurn(roomCode, player1);
+            gameService.rollDice(roomCode, player2);
+            gameService.endTurn(roomCode, player2);
+
+            const gameState = gameService.getGameState(roomCode);
+            expect(gameState?.turn.round).toBe(initialRound! + 1);
+        });
+
+        it('should reset phase to ROLL_DICE after ending turn', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const playerId = 'host-456';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [playerId, 'player-2'],
+                maxPlayers: 2,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [playerId, 'player-2']);
+
+            gameService.rollDice(roomCode, playerId);
+            gameService.endTurn(roomCode, playerId);
+
+            const gameState = gameService.getGameState(roomCode);
+            expect(gameState?.phase).toBe('ROLL_DICE');
+        });
+
+        it('should throw error when trying to end turn out of turn', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const player1 = 'player-1';
+            const player2 = 'player-2';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [player1, player2],
+                maxPlayers: 2,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [player1, player2]);
+
+            // Try to end turn when it's player 1's turn, but player 2 tries
+            expect(() => {
+                gameService.endTurn(roomCode, player2);
+            }).toThrow();
+        });
+
+        it('should throw error when trying to end turn in wrong phase', () => {
+            const roomId = 'room-123';
+            const roomCode = '123456';
+            const playerId = 'player-1';
+
+            mockRoomService.getRoom.mockReturnValue({
+                roomId,
+                roomCode,
+                players: [playerId, 'player-2'],
+                maxPlayers: 2,
+                roomState: "PLAYING",
+            });
+
+            gameService.createGame(roomId, [playerId, 'player-2']);
+
+            // Try to end turn without rolling dice first
+            expect(() => {
+                gameService.endTurn(roomCode, playerId);
+            }).toThrow();
+        });
+    });
+
     describe('Integration with RoomService', () => {
         it('should correctly convert roomCode to roomId', () => {
             const roomId = 'room-uuid-123';
@@ -855,7 +1053,7 @@ describe('GameService', () => {
             });
 
             const game = gameService.createGame(roomId, ['host-456']);
-            game.players.push({
+            game.gameState.players.push({
                 player_id: 'test-player-1',
                 player_turn: 1,
                 position: 0,

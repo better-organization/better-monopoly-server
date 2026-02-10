@@ -34,6 +34,7 @@ describe('GameController', () => {
             deleteGame: jest.fn(),
             getAllGames: jest.fn(),
             clearAllGames: jest.fn(),
+            endTurn: jest.fn(),
         } as unknown as jest.Mocked<GameService>;
 
         // Mock getInstance to return our mock service
@@ -498,6 +499,165 @@ describe('GameController', () => {
             expect(jsonMock).toHaveBeenCalledWith({
                 success: false,
                 message: 'An error occurred while retrieving board',
+            });
+        });
+    });
+
+    describe('endTurn', () => {
+        beforeEach(() => {
+            mockGameService.endTurn = jest.fn();
+        });
+
+        it('should end turn successfully', () => {
+            mockGameService.endTurn.mockReturnValue(true);
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(mockGameService.endTurn).toHaveBeenCalledWith('ABC123', 'user-123');
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: { success: true },
+            });
+        });
+
+        it('should return 400 when userId is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: '',
+                roomCode: 'ABC123',
+            };
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.endTurn).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when roomCode is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: 'user-123',
+            };
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.endTurn).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when user object is undefined', () => {
+            mockRequest = {};
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+        });
+
+        it('should return 404 when game not found or unable to end turn', () => {
+            mockGameService.endTurn.mockReturnValue(false);
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Game not found or unable to end turn',
+            });
+        });
+
+        it('should return 500 with error message when TurnManagerError occurs', () => {
+            mockGameService.endTurn.mockImplementation(() => {
+                throw new Error('Not your turn');
+            });
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Not your turn',
+            });
+        });
+
+        it('should return 500 with error message when phase validation fails', () => {
+            mockGameService.endTurn.mockImplementation(() => {
+                throw new Error('Action END_TURN not allowed in phase ROLL_DICE');
+            });
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Action END_TURN not allowed in phase ROLL_DICE',
+            });
+        });
+
+        it('should handle generic errors', () => {
+            mockGameService.endTurn.mockImplementation(() => {
+                throw new Error('Unexpected error');
+            });
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Unexpected error',
+            });
+        });
+
+        it('should handle non-Error exceptions', () => {
+            mockGameService.endTurn.mockImplementation(() => {
+                throw 'String error';
+            });
+
+            GameController.endTurn(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'An error occurred while ending turn',
             });
         });
     });

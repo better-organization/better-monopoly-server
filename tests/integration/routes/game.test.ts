@@ -275,6 +275,10 @@ describe('Game Routes', () => {
         .post('/api/game/roll-dice')
         .set('Cookie', hostCookies)
         .send();
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
       const response = await request(app)
         .post('/api/game/roll-dice')
         .set('Cookie', player2Cookies)
@@ -551,6 +555,267 @@ describe('Game Routes', () => {
       const response = await request(app).get('/api/game/board/test/version/');
       // This will be 404 because the route doesn't match the pattern
       expect([400, 404]).toContain(response.status);
+    });
+  });
+
+  describe('POST /api/game/end-turn - End Turn Flow', () => {
+    let hostCookies: string[];
+    let player2Cookies: string[];
+    let roomCode: string;
+
+    beforeEach(async () => {
+      // Register and login host
+      hostCookies = await registerAndLogin('EndTurn_Host', 'endturn_host');
+
+      // Register and login player 2
+      player2Cookies = await registerAndLogin('EndTurn_Player2', 'endturn_player2');
+
+      const response = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', hostCookies)
+        .send();
+
+      roomCode = response.body.data?.roomCode || '';
+
+      // Update hostCookies to include the game_token cookie from room creation
+      const roomCookies = getCookies(response.headers);
+      hostCookies = [...hostCookies, ...roomCookies];
+
+      // Player 2 joins
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', player2Cookies)
+        .send({ roomCode });
+
+      // Update player2Cookies to include the game_token cookie from joining
+      const joinCookies = getCookies(joinResponse.headers);
+      player2Cookies = [...player2Cookies, ...joinCookies];
+
+      // Start game
+      await request(app).post('/api/room/start').set('Cookie', hostCookies);
+    });
+
+    it('should end turn successfully after rolling dice', async () => {
+      // Player 1 rolls dice
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Player 1 ends turn
+      const response = await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.success).toBe(true);
+    });
+
+    it('should advance to next player after ending turn', async () => {
+      // Player 1 rolls dice
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Player 1 ends turn
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Get game state
+      const stateResponse = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', player2Cookies);
+
+      expect(stateResponse.status).toBe(200);
+      expect(stateResponse.body.data.turn.currentPlayerIndex).toBe(1);
+    });
+
+    it('should return 401 when not authenticated', async () => {
+      const response = await request(app)
+        .post('/api/game/end-turn')
+        .send();
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 400 when user has no roomCode in token', async () => {
+      // Create user without joining a room
+      const cookies = await registerAndLogin('NoRoom_User', 'noroom_endturn');
+
+      const response = await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', cookies);
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Required Property not found in token');
+    });
+
+    it('should return 500 when not player\'s turn', async () => {
+      // Try to end turn when it's not player 2's turn
+      const response = await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', player2Cookies)
+        .send();
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Not your turn');
+    });
+
+    it('should return 500 when trying to end turn in wrong phase', async () => {
+      // Try to end turn without rolling dice first (wrong phase)
+      const response = await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('not allowed in phase');
+    });
+
+    it('should allow player 2 to roll dice after player 1 ends turn', async () => {
+      // Player 1 rolls dice and ends turn
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Player 2 should be able to roll dice now
+      const rollResponse = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', player2Cookies)
+        .send();
+
+      expect(rollResponse.status).toBe(200);
+      expect(rollResponse.body.success).toBe(true);
+      expect(rollResponse.body.data).toHaveProperty('dice');
+      expect(rollResponse.body.data.dice).toHaveLength(2);
+    });
+
+    it('should complete a full round and increment round number', async () => {
+      // Player 1's turn
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Player 2's turn
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', player2Cookies)
+        .send();
+
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', player2Cookies)
+        .send();
+
+      // Check that it's player 1's turn again and round has incremented
+      const stateResponse = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      expect(stateResponse.status).toBe(200);
+      expect(stateResponse.body.data.turn.currentPlayerIndex).toBe(0);
+      expect(stateResponse.body.data.turn.round).toBe(2);
+    });
+
+    it('should reset phase to ROLL_DICE after ending turn', async () => {
+      // Player 1 rolls dice and ends turn
+      await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Check game state
+      const stateResponse = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', player2Cookies);
+
+      expect(stateResponse.status).toBe(200);
+      expect(stateResponse.body.data.phase).toBe('ROLL_DICE');
+    });
+
+    it('should maintain player positions after turn changes', async () => {
+      // Player 1 rolls dice
+      const rollResponse = await request(app)
+        .post('/api/game/roll-dice')
+        .set('Cookie', hostCookies)
+        .send();
+
+      const player1Position = rollResponse.body.data.newPosition;
+
+      // Player 1 ends turn
+      await request(app)
+        .post('/api/game/end-turn')
+        .set('Cookie', hostCookies)
+        .send();
+
+      // Check that player 1's position is maintained
+      const stateResponse = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      expect(stateResponse.status).toBe(200);
+      expect(stateResponse.body.data.players[0].position).toBe(player1Position);
+    });
+
+    it('should handle multiple rounds correctly', async () => {
+      // Complete 2 full rounds
+      for (let round = 0; round < 2; round++) {
+        // Player 1's turn
+        await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', hostCookies)
+          .send();
+
+        await request(app)
+          .post('/api/game/end-turn')
+          .set('Cookie', hostCookies)
+          .send();
+
+        // Player 2's turn
+        await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', player2Cookies)
+          .send();
+
+        await request(app)
+          .post('/api/game/end-turn')
+          .set('Cookie', player2Cookies)
+          .send();
+      }
+
+      // Check that round is 3 (started at 1, incremented twice)
+      const stateResponse = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      expect(stateResponse.status).toBe(200);
+      expect(stateResponse.body.data.turn.round).toBe(3);
+      expect(stateResponse.body.data.turn.currentPlayerIndex).toBe(0);
     });
   });
 });

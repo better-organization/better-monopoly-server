@@ -4,7 +4,7 @@
 
 import { Game } from '../models/Game';
 import { Board } from '../models/Board';
-import { DiceRollResult, GameStateResponse } from '../types/game';
+import { DiceRollResponse, GameState } from '../types/game';
 import { RoomService } from './roomService';
 import { BoardService } from './boardService';
 
@@ -63,7 +63,7 @@ export class GameService {
   /**
    * Get game state by roomCode
    */
-  getGameState(roomCode: string): GameStateResponse | null {
+  getGameState(roomCode: string): GameState | null {
     const game = this.getGameByRoomCode(roomCode);
     return game ? game.getGameState() : null;
   }
@@ -108,9 +108,14 @@ export class GameService {
   /**
    * Roll dice action of a specific game by roomCode
    */
-  rollDice(roomCode: string, userId: string): DiceRollResult | null {
+  rollDice(roomCode: string, userId: string): DiceRollResponse | null {
     const game = this.getGameByRoomCode(roomCode);
     return game ? game.rollDiceAndUpdatePosition(userId) : null;
+  }
+
+  endTurn(roomCode: string, userId: string): boolean {
+    const game = this.getGameByRoomCode(roomCode);
+    return game?.endTurn(userId)?? false;
   }
 
   /**
