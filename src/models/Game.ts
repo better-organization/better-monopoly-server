@@ -1,8 +1,11 @@
 // Game Model
 // Game entity class and related interfaces
 
-import { DiceRollResult, GameStateResponse } from '../types/game';
+import { Action, DiceRollResponse, GameState, Phase } from '../types/game';
 import { ITimeService, timeService } from '../services/timeService';
+import { TurnManager } from '../services/TurnManager';
+import { RollDiceManager } from '../services/RollDiceManager';
+import { MovePlayerManager } from '../services/MovePlayerManager';
 
 // Player interface
 export interface IPlayer {
@@ -42,13 +45,8 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
  * Similar to Room class pattern
  */
 export class Game {
-  public static diceResult(): number {
-    return Math.floor(Math.random() * 6) + 1;
-  }
   public roomId: string;
   public gameId: string;
-  public players: IPlayer[];
-  public currentPlayer: number;
   public status: 'waiting' | 'active' | 'finished';
   public winner?: string;
   public maxPlayers: number;
@@ -56,20 +54,35 @@ export class Game {
   public gameSettings: GameSettings;
   public createdAt: Date;
   public updatedAt: Date;
+  public gameState: GameState;
 
   constructor(roomId: string, playerIds: string[], gameNumber: number = 1) {
     this.roomId = roomId;
     this.gameId = `${roomId}-g${gameNumber}`;
-    this.currentPlayer = 0;
     this.status = 'waiting';
     this.maxPlayers = playerIds.length;
     this.hostId = playerIds[0] || '';
     this.gameSettings = DEFAULT_GAME_SETTINGS;
     this.createdAt = new Date();
     this.updatedAt = new Date();
+    this.gameState = this.initializeGameState(playerIds);
+  }
 
-    // Initialize players with starting values
-    this.players = playerIds.map((playerId, index) => ({
+  initializeGameState(playerIds: string[]): GameState {
+    return  {
+      phase: Phase.ROLL_DICE,
+      players: this.initializePlayers(playerIds),
+      turn: {
+        currentPlayerIndex: 0,
+        round: 1,
+      },
+      lastDice: undefined,
+      allowedActions: TurnManager.allowedActions(Phase.ROLL_DICE),
+    };
+  }
+
+  initializePlayers(playerIds: string[]): IPlayer[] {
+    return playerIds.map((playerId, index) => ({
       player_id: playerId,
       player_turn: index,
       position: 0,
@@ -83,19 +96,8 @@ export class Game {
   /**
    * Get current game state
    */
-  getGameState(): GameStateResponse {
-    return {
-      current_turn: this.currentPlayer,
-      players: this.players.map(player => ({
-        player_id: player.player_id,
-        player_turn: player.player_turn,
-        position: player.position,
-        player_money: player.player_money,
-        property_owns: player.property_owns,
-        utility_owns: player.utility_owns,
-        transport_owns: player.transport_owns,
-      })),
-    };
+  getGameState(): GameState {
+    return { ...this.gameState };
   }
 
   /**
@@ -108,55 +110,30 @@ export class Game {
     };
   }
 
-  /**
-   * Update player position
-   */
-  updatePlayerPosition(playerId: string, diceTotal: number): number {
-    const player = this.players.find(p => p.player_id === playerId);
-    if (!player) throw new Error('Player not found');
-
-    const newPosition = (player.position + diceTotal) % 40;
-    player.position = newPosition;
-    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
-    this.updatedAt = new Date();
-
-    return newPosition;
-  }
-
-  isPlayerTurn(playerId: string): boolean {
-    const playerIndex = this.players.findIndex(p => p.player_id === playerId);
-    return playerIndex === this.currentPlayer;
-  }
-
-  /**
-   * Roll dice and update player position
-   */
   rollDiceAndUpdatePosition(
     playerId: string,
     timeServiceInstance: ITimeService = timeService
-  ): DiceRollResult {
-    if (!this.isPlayerTurn(playerId)) {
-      throw new Error("It's not the player's turn");
-    }
-    // Roll dice
-    const { dice, total, double } = this.rollDice();
+  ): DiceRollResponse {
+
+    TurnManager.assertPlayerTurn(this.gameState, playerId);
+    TurnManager.assertPhase(this.gameState, Action.ROLL_DICE);
+
+    this.gameState = RollDiceManager.rollDice(this.gameState);
+    this.gameState = TurnManager.nextPhase(this.gameState);
+    this.gameState = MovePlayerManager.movePlayer(this.gameState);
+    this.gameState = TurnManager.nextPhase(this.gameState);
+
     const timestamp = timeServiceInstance.now();
+    const newPosition = MovePlayerManager.currentPlayerPosition(this.gameState);
 
-    const newPosition = this.updatePlayerPosition(playerId, total);
-
-    return {
-      dice,
-      total,
-      timestamp,
-      newPosition,
-      double,
-    };
+    return {...this.gameState.lastDice!, timestamp, newPosition };
   }
 
-  rollDice() {
-    const dice: [number, number] = [Game.diceResult(), Game.diceResult()];
-    const total = dice[0] + dice[1];
-    const double = dice[0] === dice[1];
-    return { dice, total, double };
+  endTurn(playerId: string): boolean {
+    TurnManager.assertPlayerTurn(this.gameState, playerId);
+    TurnManager.assertPhase(this.gameState, Action.END_TURN);
+
+    this.gameState = new TurnManager().nextTurn(this.gameState);
+    return true;
   }
 }

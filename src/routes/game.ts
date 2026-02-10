@@ -110,6 +110,52 @@ router.post('/roll-dice', requireAuth, GameController.rollDice);
 
 /**
  * @swagger
+ * /api/game/end-turn:
+ *   post:
+ *     summary: End current player's turn
+ *     description: End the current player's turn and advance to the next player. RoomCode is retrieved from user token (cookie).
+ *     tags: [Game]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Turn ended successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Missing required properties in token
+ *       404:
+ *         description: Game not found or unable to end turn
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Not your turn"
+ */
+router.post('/end-turn', requireAuth, GameController.endTurn);
+
+/**
+ * @swagger
  * /api/game/state:
  *   get:
  *     summary: Get game state
