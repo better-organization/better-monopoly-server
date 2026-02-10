@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import { BoardController } from '../controllers/boardController';
 import { GameController } from '../controllers/gameController';
 import { requireAuth } from '../middleware/auth';
 
@@ -279,58 +278,5 @@ router.get('/state', requireAuth, GameController.getGameState);
  *                   example: "An error occurred while retrieving board"
  */
 router.get('/board', requireAuth, GameController.getBoard);
-
-/**
- * @swagger
- * /api/game/board/{boardId}/version/{version}:
- *   get:
- *     summary: Get board layout
- *     description: Retrieve the layout and configuration for a specific board and version
- *     tags: [Game]
- *     parameters:
- *       - in: path
- *         name: boardId
- *         required: true
- *         schema:
- *           type: string
- *         description: Board identifier (e.g., "european_football_club_giants")
- *         example: "european_football_club_giants"
- *       - in: path
- *         name: version
- *         required: true
- *         schema:
- *           type: string
- *         description: Board version number
- *         example: "1.0"
- *     responses:
- *       200:
- *         description: Board layout retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               description: Complete board configuration with cells and metadata
- *       404:
- *         description: Board not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Board not found"
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Internal Server Error"
- */
-router.get('/board/:boardId/version/:version', BoardController.getBoardLayout);
 
 export default router;

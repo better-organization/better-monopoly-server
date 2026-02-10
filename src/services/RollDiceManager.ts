@@ -12,7 +12,10 @@ export class RollDiceManager {
     return Math.floor(Math.random() * 6) + 1;
   }
 
-  static rollDice(state: GameState, diceRoller: typeof this.diceResult = this.diceResult): GameState {
+  static rollDice(
+    state: GameState,
+    diceRoller: typeof this.diceResult = this.diceResult
+  ): GameState {
     if (state.phase !== Phase.ROLL_DICE) {
       throw new RollDiceManagerError(
         `Cannot roll dice in phase ${state.phase}`

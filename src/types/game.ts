@@ -6,18 +6,18 @@ import { IPlayer } from '../models/Game';
  * ROLL_DICE → MOVE_PLAYER → RESOLVE_TILE → END_TURN
  */
 export enum Phase {
-  ROLL_DICE = "ROLL_DICE",
-  MOVE_PLAYER = "MOVE_PLAYER",
-  RESOLVE_TILE = "RESOLVE_TILE",
-  END_TURN = "END_TURN",
-  GAME_OVER = "GAME_OVER"
+  ROLL_DICE = 'ROLL_DICE',
+  MOVE_PLAYER = 'MOVE_PLAYER',
+  RESOLVE_TILE = 'RESOLVE_TILE',
+  END_TURN = 'END_TURN',
+  GAME_OVER = 'GAME_OVER',
 }
 
 export enum Action {
-  ROLL_DICE = "ROLL_DICE",
-  MOVE_PLAYER = "MOVE_PLAYER",
-  RESOLVE_TILE = "RESOLVE_TILE",
-  END_TURN = "END_TURN"
+  ROLL_DICE = 'ROLL_DICE',
+  MOVE_PLAYER = 'MOVE_PLAYER',
+  RESOLVE_TILE = 'RESOLVE_TILE',
+  END_TURN = 'END_TURN',
 }
 
 /**
@@ -61,6 +61,6 @@ export interface DiceRollData {
 }
 
 // Game state response for polling
-export interface GameStateResponse extends GameState{
+export interface GameStateResponse extends GameState {
   you?: string;
 }

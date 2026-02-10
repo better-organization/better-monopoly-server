@@ -69,7 +69,7 @@ export class Game {
   }
 
   initializeGameState(playerIds: string[]): GameState {
-    return  {
+    return {
       phase: Phase.ROLL_DICE,
       players: this.initializePlayers(playerIds),
       turn: {
@@ -114,7 +114,6 @@ export class Game {
     playerId: string,
     timeServiceInstance: ITimeService = timeService
   ): DiceRollResponse {
-
     TurnManager.assertPlayerTurn(this.gameState, playerId);
     TurnManager.assertPhase(this.gameState, Action.ROLL_DICE);
 
@@ -126,7 +125,7 @@ export class Game {
     const timestamp = timeServiceInstance.now();
     const newPosition = MovePlayerManager.currentPlayerPosition(this.gameState);
 
-    return {...this.gameState.lastDice!, timestamp, newPosition };
+    return { ...this.gameState.lastDice!, timestamp, newPosition };
   }
 
   endTurn(playerId: string): boolean {

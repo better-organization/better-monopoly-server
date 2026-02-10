@@ -183,7 +183,10 @@ export class GameController {
       console.error('End turn error:', error);
       res.status(500).json({
         success: false,
-        message: error instanceof Error ? error.message : 'An error occurred while ending turn',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while ending turn',
       });
     }
   }
