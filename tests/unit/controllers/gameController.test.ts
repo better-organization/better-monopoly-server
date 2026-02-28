@@ -3,6 +3,8 @@ import { GameController } from '../../../src/controllers/gameController';
 import { GameService } from '../../../src/services/gameService';
 import { IUserTokenPayload } from '../../../src/utils/TokenUtil';
 import { Board } from '../../../src/models/Board';
+import { GameStateManager } from '../../../src/services/GameStateManager';
+import { DEFAULT_GAME_SETTINGS } from '../../../src/models/Game';
 
 // Mock dependencies
 jest.mock('../../../src/services/gameService');
@@ -19,6 +21,7 @@ describe('GameController', () => {
     let jsonMock: jest.Mock;
     let statusMock: jest.Mock;
     let board: jest.Mocked<Board>;
+    const mockPlayers = GameStateManager.initializePlayers(["user-123", "user-456"], DEFAULT_GAME_SETTINGS);
 
     beforeEach(() => {
         // Reset all mocks
@@ -233,7 +236,7 @@ describe('GameController', () => {
             };
         });
 
-        it('should roll dice successfully', () => {
+        it('should roll dice successfully', async () => {
             const mockDiceResult = {
                 dice: [4, 3] as [number, number],
                 total: 7,
@@ -241,9 +244,9 @@ describe('GameController', () => {
                 newPosition: 7,
             };
 
-            mockGameService.rollDice = jest.fn().mockReturnValue(mockDiceResult);
+            mockGameService.rollDice = jest.fn().mockResolvedValue(mockDiceResult);
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -261,14 +264,14 @@ describe('GameController', () => {
             });
         });
 
-        it('should return 400 when userId is missing', () => {
+        it('should return 400 when userId is missing', async () => {
             mockRequest.user = {
                 username: 'testUser',
                 userId: '',
                 roomCode: 'ABC123',
             };
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -281,13 +284,13 @@ describe('GameController', () => {
             expect(mockGameService.rollDice).not.toHaveBeenCalled();
         });
 
-        it('should return 400 when roomCode is missing', () => {
+        it('should return 400 when roomCode is missing', async () => {
             mockRequest.user = {
                 username: 'testUser',
                 userId: 'user-123',
             };
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -300,12 +303,12 @@ describe('GameController', () => {
             expect(mockGameService.rollDice).not.toHaveBeenCalled();
         });
 
-        it('should return 400 when user object is undefined', () => {
+        it('should return 400 when user object is undefined', async () => {
             mockRequest = {
                 body: { playerId: 1 },
             };
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -317,10 +320,10 @@ describe('GameController', () => {
             });
         });
 
-        it('should return 404 when game or player not found', () => {
-            mockGameService.rollDice = jest.fn().mockReturnValue(null);
+        it('should return 404 when game or player not found', async () => {
+            mockGameService.rollDice = jest.fn().mockResolvedValue(null);
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -332,12 +335,12 @@ describe('GameController', () => {
             });
         });
 
-        it('should return 500 when an error occurs', () => {
+        it('should return 500 when an error occurs', async () => {
             mockGameService.rollDice = jest.fn().mockImplementation(() => {
                 throw new Error('Dice roll error');
             });
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -349,7 +352,7 @@ describe('GameController', () => {
             });
         });
 
-        it('should handle different dice values', () => {
+        it('should handle different dice values', async () => {
             const mockDiceResult = {
                 dice: [6, 6] as [number, number],
                 total: 12,
@@ -357,9 +360,9 @@ describe('GameController', () => {
                 newPosition: 12,
             };
 
-            mockGameService.rollDice = jest.fn().mockReturnValue(mockDiceResult);
+            mockGameService.rollDice = jest.fn().mockResolvedValue(mockDiceResult);
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -375,7 +378,7 @@ describe('GameController', () => {
             });
         });
 
-        it('should handle position wrap-around', () => {
+        it('should handle position wrap-around', async () => {
             const mockDiceResult = {
                 dice: [5, 4] as [number, number],
                 total: 9,
@@ -383,9 +386,9 @@ describe('GameController', () => {
                 newPosition: 3, // Wrapped from 38 + 9 = 47 % 40 = 7
             };
 
-            mockGameService.rollDice = jest.fn().mockReturnValue(mockDiceResult);
+            mockGameService.rollDice = jest.fn().mockResolvedValue(mockDiceResult);
 
-            GameController.rollDice(
+            await GameController.rollDice(
                 mockRequest as Request,
                 mockResponse as Response
             );
@@ -658,6 +661,382 @@ describe('GameController', () => {
             expect(jsonMock).toHaveBeenCalledWith({
                 success: false,
                 message: 'An error occurred while ending turn',
+            });
+        });
+    });
+
+    describe('buyProperty', () => {
+        beforeEach(() => {
+            mockGameService.buyProperty = jest.fn();
+        });
+
+        it('should buy property successfully', () => {
+            const mockGameState = {
+                phase: 'BUY_PROPERTY',
+                players: mockPlayers,
+                turn: { currentPlayerIndex: 0, round: 1 },
+                currentTile: undefined,
+                lastDice: undefined,
+                allowedActions: ['BUY_PROPERTY', 'SKIP_BUY'],
+            };
+
+            (mockGameService.buyProperty as jest.Mock).mockReturnValue(mockGameState);
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(mockGameService.buyProperty).toHaveBeenCalledWith('ABC123', 'user-123');
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: { success: true },
+            });
+        });
+
+        it('should return 400 when userId is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: '',
+                roomCode: 'ABC123',
+            };
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.buyProperty).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when roomCode is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: 'user-123',
+            };
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.buyProperty).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when user object is undefined', () => {
+            mockRequest = {};
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+        });
+
+        it('should return 404 when game not found', () => {
+            (mockGameService.buyProperty as jest.Mock).mockReturnValue(null);
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Game not found',
+            });
+        });
+
+        it('should return 403 when TurnManagerError occurs (not your turn)', () => {
+            const TurnManagerError = require('../../../src/services/TurnManager').TurnManagerError;
+            (mockGameService.buyProperty as jest.Mock).mockImplementation(() => {
+                throw new TurnManagerError('Not your turn');
+            });
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Not your turn',
+            });
+        });
+
+        it('should return 403 when TurnManagerError occurs (wrong phase)', () => {
+            const TurnManagerError = require('../../../src/services/TurnManager').TurnManagerError;
+            (mockGameService.buyProperty as jest.Mock).mockImplementation(() => {
+                throw new TurnManagerError('Action BUY_PROPERTY not allowed in phase ROLL_DICE');
+            });
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Action BUY_PROPERTY not allowed in phase ROLL_DICE',
+            });
+        });
+
+        it('should return 400 when TileManagerError occurs (insufficient funds)', () => {
+            const TileManagerError = require('../../../src/services/TileManager').TileManagerError;
+            (mockGameService.buyProperty as jest.Mock).mockImplementation(() => {
+                throw new TileManagerError('Insufficient funds to purchase this tile');
+            });
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Insufficient funds to purchase this tile',
+            });
+        });
+
+        it('should return 400 when TileManagerError occurs (cannot buy)', () => {
+            const TileManagerError = require('../../../src/services/TileManager').TileManagerError;
+            (mockGameService.buyProperty as jest.Mock).mockImplementation(() => {
+                throw new TileManagerError('Cannot buy this tile');
+            });
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Cannot buy this tile',
+            });
+        });
+
+        it('should return 500 when generic error occurs', () => {
+            (mockGameService.buyProperty as jest.Mock).mockImplementation(() => {
+                throw new Error('Unexpected database error');
+            });
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Unexpected database error',
+            });
+        });
+
+        it('should handle non-Error exceptions', () => {
+            (mockGameService.buyProperty as jest.Mock).mockImplementation(() => {
+                throw 'String error';
+            });
+
+            GameController.buyProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'An error occurred while buying property',
+            });
+        });
+    });
+
+    describe('passProperty', () => {
+        beforeEach(() => {
+            mockGameService.passProperty = jest.fn();
+        });
+
+        it('should pass property successfully', () => {
+            const mockGameState = {
+                phase: 'END_TURN',
+                players: mockPlayers,
+                turn: { currentPlayerIndex: 0, round: 1 },
+                currentTile: undefined,
+                lastDice: undefined,
+                allowedActions: ['END_TURN'],
+            };
+
+            (mockGameService.passProperty as jest.Mock).mockReturnValue(mockGameState);
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(mockGameService.passProperty).toHaveBeenCalledWith('ABC123', 'user-123');
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: true,
+                data: { success: true },
+            });
+        });
+
+        it('should return 400 when userId is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: '',
+                roomCode: 'ABC123',
+            };
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.passProperty).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when roomCode is missing', () => {
+            mockRequest.user = {
+                username: 'testUser',
+                userId: 'user-123',
+            };
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+            expect(mockGameService.passProperty).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 when user object is undefined', () => {
+            mockRequest = {};
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Required Property not found in token',
+            });
+        });
+
+        it('should return 404 when game not found', () => {
+            (mockGameService.passProperty as jest.Mock).mockReturnValue(null);
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Game not found',
+            });
+        });
+
+        it('should return 403 when TurnManagerError occurs (not your turn)', () => {
+            const TurnManagerError = require('../../../src/services/TurnManager').TurnManagerError;
+            (mockGameService.passProperty as jest.Mock).mockImplementation(() => {
+                throw new TurnManagerError('Not your turn');
+            });
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Not your turn',
+            });
+        });
+
+        it('should return 403 when TurnManagerError occurs (wrong phase)', () => {
+            const TurnManagerError = require('../../../src/services/TurnManager').TurnManagerError;
+            (mockGameService.passProperty as jest.Mock).mockImplementation(() => {
+                throw new TurnManagerError('Action SKIP_BUY not allowed in phase END_TURN');
+            });
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Action SKIP_BUY not allowed in phase END_TURN',
+            });
+        });
+
+        it('should return 500 when generic error occurs', () => {
+            (mockGameService.passProperty as jest.Mock).mockImplementation(() => {
+                throw new Error('Unexpected database error');
+            });
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'Unexpected database error',
+            });
+        });
+
+        it('should handle non-Error exceptions', () => {
+            (mockGameService.passProperty as jest.Mock).mockImplementation(() => {
+                throw 'String error';
+            });
+
+            GameController.passProperty(
+                mockRequest as Request,
+                mockResponse as Response
+            );
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({
+                success: false,
+                message: 'An error occurred while passing property purchase',
             });
         });
     });

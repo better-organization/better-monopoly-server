@@ -3,6 +3,8 @@ import { GameService } from '../services/gameService';
 import { DiceRollData, GameStateResponse } from '../types/game';
 import { ResponseType } from '../types/response';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
+import { TurnManagerError } from '../services/TurnManager';
+import { TileManagerError } from '../services/TileManager';
 
 export class GameController {
   /**
@@ -54,7 +56,7 @@ export class GameController {
    * Roll dice for a game and update player position
    * Gets roomCode from user token (cookie)
    */
-  static rollDice(req: Request, res: Response): void {
+  static async rollDice(req: Request, res: Response): Promise<void> {
     try {
       const roomCode = req.user?.roomCode;
       const userId = req.user?.userId;
@@ -70,7 +72,7 @@ export class GameController {
       console.log(`Rolling dice for room: ${roomCode}, player: ${userId}`);
 
       const gameService = GameService.getInstance();
-      const diceResult = gameService.rollDice(roomCode, userId);
+      const diceResult = await gameService.rollDice(roomCode, userId);
 
       if (!diceResult) {
         res.status(404).json({
@@ -187,6 +189,135 @@ export class GameController {
           error instanceof Error
             ? error.message
             : 'An error occurred while ending turn',
+      });
+    }
+  }
+
+  /**
+   * POST /api/game/buy
+   * Buy property at current position
+   * Gets roomCode from user token (cookie)
+   */
+  static buyProperty(req: Request, res: Response): void {
+    try {
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
+
+      if (!userId || !roomCode) {
+        res.status(400).json({
+          success: false,
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
+        });
+        return;
+      }
+
+      console.log(`Buying property for room: ${roomCode}, player: ${userId}`);
+
+      const gameService = GameService.getInstance();
+      const result = gameService.buyProperty(roomCode, userId);
+
+      if (!result) {
+        res.status(404).json({
+          success: false,
+          message: RESPONSE_MESSAGES.GAME_NOT_FOUND,
+        });
+        return;
+      }
+
+      const response: ResponseType<{ success: boolean }> = {
+        success: true,
+        data: { success: true },
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Buy property error:', error);
+
+      // Handle TurnManagerError (wrong turn or wrong phase) with 403
+      if (error instanceof TurnManagerError) {
+        res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      // Handle TileManagerError (insufficient funds, not purchasable) with 400
+      if (error instanceof TileManagerError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      // Generic error handling
+      res.status(500).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : RESPONSE_MESSAGES.BUY_PROPERTY_ERROR,
+      });
+    }
+  }
+
+  /**
+   * POST /api/game/pass
+   * Pass on buying property at current position
+   * Gets roomCode from user token (cookie)
+   */
+  static passProperty(req: Request, res: Response): void {
+    try {
+      const roomCode = req.user?.roomCode;
+      const userId = req.user?.userId;
+
+      if (!userId || !roomCode) {
+        res.status(400).json({
+          success: false,
+          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
+        });
+        return;
+      }
+
+      console.log(`Passing property for room: ${roomCode}, player: ${userId}`);
+
+      const gameService = GameService.getInstance();
+      const result = gameService.passProperty(roomCode, userId);
+
+      if (!result) {
+        res.status(404).json({
+          success: false,
+          message: RESPONSE_MESSAGES.GAME_NOT_FOUND,
+        });
+        return;
+      }
+
+      const response: ResponseType<{ success: boolean }> = {
+        success: true,
+        data: { success: true },
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Pass property error:', error);
+
+      // Handle TurnManagerError (wrong turn or wrong phase) with 403
+      if (error instanceof TurnManagerError) {
+        res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      // Generic error handling
+      res.status(500).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : RESPONSE_MESSAGES.PASS_PROPERTY_ERROR,
       });
     }
   }

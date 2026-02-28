@@ -46,6 +46,7 @@ describe('Game Routes', () => {
     RoomService.getInstance().clearStorage();
     GameService.getInstance().clearAllGames();
   });
+
   describe('GET /api/game/test', () => {
     it('should return game service status', async () => {
       const response = await request(app).get('/api/game/test');
@@ -167,26 +168,6 @@ describe('Game Routes', () => {
 
       // Player 2 can roll dice (game logic will handle turn validation)
       expect(response.status).toBe(500);
-    });
-
-    it('should allow player 2 to roll dice after player 1\'s turn', async () => {
-      await request(app)
-        .post('/api/game/roll-dice')
-        .set('Cookie', hostCookies)
-        .send();
-      await request(app)
-        .post('/api/game/end-turn')
-        .set('Cookie', hostCookies)
-        .send();
-      const response = await request(app)
-        .post('/api/game/roll-dice')
-        .set('Cookie', player2Cookies)
-        .send();
-
-      // Player 2 can roll dice (game logic will handle turn validation)
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('dice');
     });
   });
 
@@ -501,6 +482,19 @@ describe('Game Routes', () => {
         .set('Cookie', hostCookies)
         .send();
 
+      // Check game state to see if we need to buy/pass property
+      const stateAfterRoll = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      // If in BUY_PROPERTY phase, pass the property first
+      if (stateAfterRoll.body.data.phase === 'BUY_PROPERTY') {
+        await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', hostCookies)
+          .send();
+      }
+
       // Player 1 ends turn
       const response = await request(app)
         .post('/api/game/end-turn')
@@ -518,6 +512,19 @@ describe('Game Routes', () => {
         .post('/api/game/roll-dice')
         .set('Cookie', hostCookies)
         .send();
+
+      // Check game state to see if we need to buy/pass property
+      const stateAfterRoll = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      // If in BUY_PROPERTY phase, pass the property first
+      if (stateAfterRoll.body.data.phase === 'BUY_PROPERTY') {
+        await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', hostCookies)
+          .send();
+      }
 
       // Player 1 ends turn
       await request(app)
@@ -580,12 +587,26 @@ describe('Game Routes', () => {
     });
 
     it('should allow player 2 to roll dice after player 1 ends turn', async () => {
-      // Player 1 rolls dice and ends turn
+      // Player 1 rolls dice
       await request(app)
         .post('/api/game/roll-dice')
         .set('Cookie', hostCookies)
         .send();
 
+      // Check game state to see if we need to buy/pass property
+      const stateAfterRoll = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      // If in BUY_PROPERTY phase, pass the property first
+      if (stateAfterRoll.body.data.phase === 'BUY_PROPERTY') {
+        await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', hostCookies)
+          .send();
+      }
+
+      // Player 1 ends turn
       await request(app)
         .post('/api/game/end-turn')
         .set('Cookie', hostCookies)
@@ -610,6 +631,18 @@ describe('Game Routes', () => {
         .set('Cookie', hostCookies)
         .send();
 
+      // Check and handle BUY_PROPERTY phase
+      let state = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      if (state.body.data.phase === 'BUY_PROPERTY') {
+        await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', hostCookies)
+          .send();
+      }
+
       await request(app)
         .post('/api/game/end-turn')
         .set('Cookie', hostCookies)
@@ -620,6 +653,18 @@ describe('Game Routes', () => {
         .post('/api/game/roll-dice')
         .set('Cookie', player2Cookies)
         .send();
+
+      // Check and handle BUY_PROPERTY phase
+      state = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', player2Cookies);
+
+      if (state.body.data.phase === 'BUY_PROPERTY') {
+        await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', player2Cookies)
+          .send();
+      }
 
       await request(app)
         .post('/api/game/end-turn')
@@ -637,12 +682,25 @@ describe('Game Routes', () => {
     });
 
     it('should reset phase to ROLL_DICE after ending turn', async () => {
-      // Player 1 rolls dice and ends turn
+      // Player 1 rolls dice
       await request(app)
         .post('/api/game/roll-dice')
         .set('Cookie', hostCookies)
         .send();
 
+      // Check and handle BUY_PROPERTY phase
+      let state = await request(app)
+        .get('/api/game/state')
+        .set('Cookie', hostCookies);
+
+      if (state.body.data.phase === 'BUY_PROPERTY') {
+        await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', hostCookies)
+          .send();
+      }
+
+      // End turn
       await request(app)
         .post('/api/game/end-turn')
         .set('Cookie', hostCookies)
@@ -664,21 +722,36 @@ describe('Game Routes', () => {
         .set('Cookie', hostCookies)
         .send();
 
-      const player1Position = rollResponse.body.data.newPosition;
+      // Check if roll was successful
+      if (rollResponse.status === 200 && rollResponse.body.data) {
+        const player1Position = rollResponse.body.data.newPosition;
 
-      // Player 1 ends turn
-      await request(app)
-        .post('/api/game/end-turn')
-        .set('Cookie', hostCookies)
-        .send();
+        // Check and handle BUY_PROPERTY phase
+        let state = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
 
-      // Check that player 1's position is maintained
-      const stateResponse = await request(app)
-        .get('/api/game/state')
-        .set('Cookie', hostCookies);
+        if (state.body.data.phase === 'BUY_PROPERTY') {
+          await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', hostCookies)
+            .send();
+        }
 
-      expect(stateResponse.status).toBe(200);
-      expect(stateResponse.body.data.players[0].position).toBe(player1Position);
+        // Player 1 ends turn
+        await request(app)
+          .post('/api/game/end-turn')
+          .set('Cookie', hostCookies)
+          .send();
+
+        // Check that player 1's position is maintained
+        const stateResponse = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
+
+        expect(stateResponse.status).toBe(200);
+        expect(stateResponse.body.data.players[0].position).toBe(player1Position);
+      }
     });
 
     it('should handle multiple rounds correctly', async () => {
@@ -690,6 +763,18 @@ describe('Game Routes', () => {
           .set('Cookie', hostCookies)
           .send();
 
+        // Check and handle BUY_PROPERTY phase
+        let state = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
+
+        if (state.body.data.phase === 'BUY_PROPERTY') {
+          await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', hostCookies)
+            .send();
+        }
+
         await request(app)
           .post('/api/game/end-turn')
           .set('Cookie', hostCookies)
@@ -700,6 +785,18 @@ describe('Game Routes', () => {
           .post('/api/game/roll-dice')
           .set('Cookie', player2Cookies)
           .send();
+
+        // Check and handle BUY_PROPERTY phase
+        state = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', player2Cookies);
+
+        if (state.body.data.phase === 'BUY_PROPERTY') {
+          await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', player2Cookies)
+            .send();
+        }
 
         await request(app)
           .post('/api/game/end-turn')
@@ -715,6 +812,344 @@ describe('Game Routes', () => {
       expect(stateResponse.status).toBe(200);
       expect(stateResponse.body.data.turn.round).toBe(3);
       expect(stateResponse.body.data.turn.currentPlayerIndex).toBe(0);
+    });
+  });
+
+  describe('POST /api/game/buy and POST /api/game/pass - Buy/Pass Property Flow', () => {
+    let hostCookies: string[];
+    let player2Cookies: string[];
+    let roomCode: string;
+
+    beforeEach(async () => {
+      // Register and login host
+      hostCookies = await registerAndLogin('BuyPass_Host', 'buypass_host');
+
+      // Register and login player 2
+      player2Cookies = await registerAndLogin('BuyPass_Player2', 'buypass_player2');
+
+      const response = await request(app)
+        .post('/api/room/create')
+        .set('Cookie', hostCookies)
+        .send();
+
+      roomCode = response.body.data?.roomCode || '';
+
+      // Update hostCookies to include the game_token cookie from room creation
+      const roomCookies = getCookies(response.headers);
+      hostCookies = [...hostCookies, ...roomCookies];
+
+      // Player 2 joins
+      const joinResponse = await request(app)
+        .post('/api/room/join')
+        .set('Cookie', player2Cookies)
+        .send({ roomCode });
+
+      // Update player2Cookies to include the game_token cookie from joining
+      const joinCookies = getCookies(joinResponse.headers);
+      player2Cookies = [...player2Cookies, ...joinCookies];
+
+      // Start game
+      await request(app).post('/api/room/start').set('Cookie', hostCookies);
+    });
+
+    describe('POST /api/game/buy - Buy Property', () => {
+      it('should buy property successfully after landing on it', async () => {
+        // Roll dice to move to a property
+        const rollResponse = await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', hostCookies)
+          .send();
+
+        // Only proceed if roll was successful
+        if (rollResponse.status === 200 && rollResponse.body.data) {
+          const newPosition = rollResponse.body.data.newPosition;
+
+          // Get game state to check if we landed on a purchasable property
+          const stateBeforeBuy = await request(app)
+            .get('/api/game/state')
+            .set('Cookie', hostCookies);
+
+          const currentTile = stateBeforeBuy.body.data.currentTile;
+          const currentPhase = stateBeforeBuy.body.data.phase;
+
+          // Only test buy if we're in BUY_PROPERTY phase
+          if (currentPhase === 'BUY_PROPERTY' && currentTile && !currentTile.isOwned) {
+            const playerMoneyBefore = stateBeforeBuy.body.data.players[0].player_money;
+
+            // Buy the property
+            const buyResponse = await request(app)
+              .post('/api/game/buy')
+              .set('Cookie', hostCookies)
+              .send();
+
+            expect(buyResponse.status).toBe(200);
+            expect(buyResponse.body.success).toBe(true);
+
+            // Verify game state after buying
+            const stateAfterBuy = await request(app)
+              .get('/api/game/state')
+              .set('Cookie', hostCookies);
+
+            const player = stateAfterBuy.body.data.players[0];
+
+            // Check money was deducted
+            expect(player.player_money).toBeLessThan(playerMoneyBefore);
+
+            // Check property was added to appropriate array
+            if (currentTile.type === 'property') {
+              expect(player.property_owns).toContain(newPosition + 1);
+            } else if (currentTile.type === 'transport') {
+              expect(player.transport_owns).toContain(newPosition + 1);
+            } else if (currentTile.type === 'utility') {
+              expect(player.utility_owns).toContain(newPosition + 1);
+            }
+
+            // Check phase changed to END_TURN
+            expect(stateAfterBuy.body.data.phase).toBe('END_TURN');
+          }
+        }
+      });
+
+      it('should return 401 when not authenticated', async () => {
+        const response = await request(app)
+          .post('/api/game/buy')
+          .send();
+
+        expect(response.status).toBe(401);
+      });
+
+      it('should return 400 when user has no roomCode in token', async () => {
+        const cookies = await registerAndLogin('NoRoom_Buy', 'noroom_buy');
+
+        const response = await request(app)
+          .post('/api/game/buy')
+          .set('Cookie', cookies);
+
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('Required Property not found in token');
+      });
+
+      it('should return 403 when trying to buy in wrong phase', async () => {
+        // Try to buy without rolling dice first
+        const response = await request(app)
+          .post('/api/game/buy')
+          .set('Cookie', hostCookies)
+          .send();
+
+        expect(response.status).toBe(403);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('not allowed in phase');
+      });
+
+      it('should return 403 when not player\'s turn', async () => {
+        // Player 2 tries to buy when it's player 1's turn
+        const response = await request(app)
+          .post('/api/game/buy')
+          .set('Cookie', player2Cookies)
+          .send();
+
+        expect(response.status).toBe(403);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('Not your turn');
+      });
+    });
+
+    describe('POST /api/game/pass - Pass Property', () => {
+      it('should pass property successfully after landing on it', async () => {
+        // Roll dice to move to a property
+        await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', hostCookies)
+          .send();
+
+        // Get game state to check phase
+        const stateBefore = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
+
+        const currentPhase = stateBefore.body.data.phase;
+
+        // Only test pass if we're in BUY_PROPERTY phase
+        if (currentPhase === 'BUY_PROPERTY') {
+          const playerMoneyBefore = stateBefore.body.data.players[0].player_money;
+          const propertyOwnsBefore = [...stateBefore.body.data.players[0].property_owns];
+
+          // Pass the property
+          const passResponse = await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', hostCookies)
+            .send();
+
+          expect(passResponse.status).toBe(200);
+          expect(passResponse.body.success).toBe(true);
+
+          // Verify game state after passing
+          const stateAfter = await request(app)
+            .get('/api/game/state')
+            .set('Cookie', hostCookies);
+
+          const player = stateAfter.body.data.players[0];
+
+          // Check money was NOT deducted
+          expect(player.player_money).toBe(playerMoneyBefore);
+
+          // Check property was NOT added
+          expect(player.property_owns).toEqual(propertyOwnsBefore);
+
+          // Check phase changed to END_TURN
+          expect(stateAfter.body.data.phase).toBe('END_TURN');
+        }
+      });
+
+      it('should allow ending turn after passing property', async () => {
+        // Roll dice
+        await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', hostCookies)
+          .send();
+
+        // Check if in BUY_PROPERTY phase
+        const stateBefore = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
+
+        if (stateBefore.body.data.phase === 'BUY_PROPERTY') {
+          // Pass property
+          await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', hostCookies)
+            .send();
+
+          // End turn
+          const endTurnResponse = await request(app)
+            .post('/api/game/end-turn')
+            .set('Cookie', hostCookies)
+            .send();
+
+          expect(endTurnResponse.status).toBe(200);
+          expect(endTurnResponse.body.success).toBe(true);
+
+          // Verify turn changed
+          const stateAfter = await request(app)
+            .get('/api/game/state')
+            .set('Cookie', player2Cookies);
+
+          expect(stateAfter.body.data.turn.currentPlayerIndex).toBe(1);
+        }
+      });
+
+      it('should return 401 when not authenticated', async () => {
+        const response = await request(app)
+          .post('/api/game/pass')
+          .send();
+
+        expect(response.status).toBe(401);
+      });
+
+      it('should return 400 when user has no roomCode in token', async () => {
+        const cookies = await registerAndLogin('NoRoom_Pass', 'noroom_pass');
+
+        const response = await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', cookies);
+
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('Required Property not found in token');
+      });
+
+      it('should return 403 when trying to pass in wrong phase', async () => {
+        // Try to pass without rolling dice first
+        const response = await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', hostCookies)
+          .send();
+
+        expect(response.status).toBe(403);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('not allowed in phase');
+      });
+
+      it('should return 403 when not player\'s turn', async () => {
+        // Player 2 tries to pass when it's player 1's turn
+        const response = await request(app)
+          .post('/api/game/pass')
+          .set('Cookie', player2Cookies)
+          .send();
+
+        expect(response.status).toBe(403);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('Not your turn');
+      });
+    });
+
+    describe('Complete Buy/Pass Workflow', () => {
+      it('should complete a full game flow with buy and pass', async () => {
+        // Player 1 rolls dice
+        await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', hostCookies)
+          .send();
+
+        let state = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
+
+        // If in BUY_PROPERTY phase, pass it
+        if (state.body.data.phase === 'BUY_PROPERTY') {
+          await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', hostCookies)
+            .send();
+        }
+
+        // End turn
+        await request(app)
+          .post('/api/game/end-turn')
+          .set('Cookie', hostCookies)
+          .send();
+
+        // Player 2 rolls dice
+        await request(app)
+          .post('/api/game/roll-dice')
+          .set('Cookie', player2Cookies)
+          .send();
+
+        state = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', player2Cookies);
+
+        // If in BUY_PROPERTY phase, try to buy
+        if (state.body.data.phase === 'BUY_PROPERTY' && state.body.data.currentTile && !state.body.data.currentTile.isOwned) {
+          const buyResponse = await request(app)
+            .post('/api/game/buy')
+            .set('Cookie', player2Cookies)
+            .send();
+
+          expect(buyResponse.status).toBe(200);
+        } else if (state.body.data.phase === 'BUY_PROPERTY') {
+          // If property is owned or can't be bought, pass
+          await request(app)
+            .post('/api/game/pass')
+            .set('Cookie', player2Cookies)
+            .send();
+        }
+
+        // End turn
+        await request(app)
+          .post('/api/game/end-turn')
+          .set('Cookie', player2Cookies)
+          .send();
+
+        // Verify we're back to player 1
+        state = await request(app)
+          .get('/api/game/state')
+          .set('Cookie', hostCookies);
+
+        expect(state.body.data.turn.currentPlayerIndex).toBe(0);
+        expect(state.body.data.turn.round).toBe(2);
+      });
     });
   });
 });

@@ -1,4 +1,5 @@
 import { GameState, Phase } from '../types/game';
+import { GameStateManager } from './GameStateManager';
 
 export class RollDiceManagerError extends Error {
   constructor(message: string) {
@@ -25,6 +26,6 @@ export class RollDiceManager {
     const dice: [number, number] = [diceRoller(), diceRoller()];
     const total = dice[0] + dice[1];
     const double = dice[0] === dice[1];
-    return { ...state, lastDice: { dice, total, double } };
+    return GameStateManager.addDiceResult(state, { dice, total, double });
   }
 }

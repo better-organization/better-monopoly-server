@@ -11,6 +11,7 @@ export enum Phase {
   RESOLVE_TILE = 'RESOLVE_TILE',
   END_TURN = 'END_TURN',
   GAME_OVER = 'GAME_OVER',
+  BUY_PROPERTY = 'BUY_PROPERTY',
 }
 
 export enum Action {
@@ -18,6 +19,8 @@ export enum Action {
   MOVE_PLAYER = 'MOVE_PLAYER',
   RESOLVE_TILE = 'RESOLVE_TILE',
   END_TURN = 'END_TURN',
+  BUY_PROPERTY = 'BUY_PROPERTY',
+  SKIP_BUY = 'SKIP_BUY',
 }
 
 /**
@@ -29,10 +32,9 @@ export interface GameState {
 
   players: IPlayer[];
 
-  turn: {
-    currentPlayerIndex: number;
-    round: number;
-  };
+  turn: Turn;
+
+  currentTile: TileInfo | undefined;
 
   lastDice: DiceRollResult | undefined;
 
@@ -58,6 +60,21 @@ export interface DiceRollData {
   total: number;
   timestamp: string;
   newPosition: number;
+}
+
+export interface Turn {
+  currentPlayerIndex: number;
+  round: number;
+}
+
+export interface TileInfo {
+  index: number;
+  type: string;
+  isOwned: boolean;
+  ownerId?: string;
+  isOwnerCurrentPlayer?: boolean;
+  price?: number;
+  rent?: number;
 }
 
 // Game state response for polling

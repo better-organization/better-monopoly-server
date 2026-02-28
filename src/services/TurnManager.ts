@@ -1,9 +1,11 @@
-import { GameState, Phase, Action } from '../types/game';
+import { Action, GameState, Phase } from '../types/game';
+import { GameStateManager } from './GameStateManager';
 
 export const ALLOWED_ACTIONS: Record<Phase, Action[]> = {
   [Phase.ROLL_DICE]: [Action.ROLL_DICE],
   [Phase.MOVE_PLAYER]: [Action.MOVE_PLAYER],
   [Phase.RESOLVE_TILE]: [Action.RESOLVE_TILE],
+  [Phase.BUY_PROPERTY]: [Action.BUY_PROPERTY, Action.SKIP_BUY],
   [Phase.END_TURN]: [Action.END_TURN],
   [Phase.GAME_OVER]: [],
 };
@@ -40,31 +42,54 @@ export class TurnManager {
   }
 
   static nextPhase(state: GameState): GameState {
-    const flow: Record<Phase, Phase> = {
-      [Phase.ROLL_DICE]: Phase.MOVE_PLAYER,
-      [Phase.MOVE_PLAYER]: Phase.END_TURN,
-      [Phase.END_TURN]: Phase.ROLL_DICE,
-      [Phase.GAME_OVER]: Phase.GAME_OVER,
-      [Phase.RESOLVE_TILE]: Phase.RESOLVE_TILE,
+    const flow: Record<Phase, (state: GameState) => [Phase, Action[]]> = {
+      [Phase.ROLL_DICE]: () => [
+        Phase.MOVE_PLAYER,
+        ALLOWED_ACTIONS[Phase.MOVE_PLAYER],
+      ],
+      [Phase.MOVE_PLAYER]: () => [
+        Phase.RESOLVE_TILE,
+        ALLOWED_ACTIONS[Phase.RESOLVE_TILE],
+      ],
+      [Phase.RESOLVE_TILE]: this.resolveTilePhaseChange,
+      [Phase.BUY_PROPERTY]: () => [
+        Phase.END_TURN,
+        ALLOWED_ACTIONS[Phase.END_TURN],
+      ],
+      [Phase.END_TURN]: () => [
+        Phase.ROLL_DICE,
+        ALLOWED_ACTIONS[Phase.ROLL_DICE],
+      ],
+      [Phase.GAME_OVER]: () => [
+        Phase.GAME_OVER,
+        ALLOWED_ACTIONS[Phase.GAME_OVER],
+      ],
     };
 
-    return {
-      ...state,
-      phase: flow[state.phase],
-      allowedActions: this.allowedActions(flow[state.phase]),
-    };
+    const [phase, allowedActions] = flow[state.phase](state);
+    console.log('Transitioning from phase', state.phase, 'to', phase);
+    return GameStateManager.changePhaseAndAllowedAction(
+      state,
+      phase,
+      allowedActions
+    );
   }
 
-  nextTurn(state: GameState): GameState {
+  private static resolveTilePhaseChange(state: GameState): [Phase, Action[]] {
+    if (state.currentTile && !state.currentTile.isOwned) {
+      return [Phase.BUY_PROPERTY, ALLOWED_ACTIONS[Phase.BUY_PROPERTY]];
+    }
+
+    return [Phase.END_TURN, ALLOWED_ACTIONS[Phase.END_TURN]];
+  }
+
+  static nextTurn(state: GameState): GameState {
     const nextIndex =
       (state.turn.currentPlayerIndex + 1) % state.players.length;
+    const isNextRound = nextIndex === 0;
 
-    return TurnManager.nextPhase({
-      ...state,
-      turn: {
-        currentPlayerIndex: nextIndex,
-        round: state.turn.round + (nextIndex === 0 ? 1 : 0),
-      },
-    });
+    return TurnManager.nextPhase(
+      GameStateManager.changeTurn(state, nextIndex, isNextRound)
+    );
   }
 }

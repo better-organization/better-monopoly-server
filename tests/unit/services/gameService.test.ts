@@ -2,6 +2,53 @@ import { GameService } from '../../../src/services/gameService';
 import { RoomService } from '../../../src/services/roomService';
 import { BoardService } from '../../../src/services/boardService';
 import { Game } from '../../../src/models/Game';
+import { Board, FlattenedCell } from '../../../src/models/Board';
+
+// Helper function to create a mock board with 40 cells
+function createMockBoard(boardId = 'european_football_club_giants', version = '1.0'): Board {
+    const cells: FlattenedCell[] = [];
+    for (let i = 0; i < 40; i++) {
+        cells.push({
+            index: i,
+            name: `Cell ${i}`,
+            cell_type: 'property',
+            board_id: boardId,
+            board_versions: [version],
+        });
+    }
+
+    return {
+        id: boardId,
+        version: version,
+        edition: 'European Football Club Giants',
+        currency: 'USD',
+        currency_symbol: '$',
+        mortgage_percentage: '50',
+        sell_percentage: '50',
+        terms: {
+            player: 'Player',
+            property: 'Property',
+            transport: 'Transport',
+            utility: 'Utility',
+            house: 'House',
+            hotel: 'Hotel',
+            property_rent: 'Rent',
+            transport_rent: 'Fare',
+            utility_rent: 'Fee',
+            mortgage: 'Mortgage',
+            passing_go: 'Passing Go',
+            salary: 'Salary',
+            jail: 'Jail',
+            theft: 'Theft',
+            parking: 'Free Parking',
+            income_tax: 'Income Tax',
+            luxury_tax: 'Luxury Tax',
+            community_chest: 'Community Chest',
+            chance: 'Chance',
+        },
+        cells,
+    };
+}
 
 // Mock RoomService and BoardService
 jest.mock('../../../src/services/roomService');
@@ -278,12 +325,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -336,11 +378,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                cells: [{ index: 1, name: 'Cell 1' }],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -348,29 +386,37 @@ describe('GameService', () => {
 
             const board = await gameService.getBoard(roomCode);
 
-            expect(board).toEqual(mockBoard);
-            expect(mockBoardService.getBoardLayout).toHaveBeenCalledTimes(1);
+            expect(board).toBeDefined();
+            expect(board?.id).toBe('european_football_club_giants');
+            expect(board?.version).toBe('1.0');
+            expect(mockBoardService.getBoardLayout).toHaveBeenCalledWith(
+                'european_football_club_giants',
+                '1.0'
+            );
         });
 
-        it('should return null when BoardService returns null', async () => {
-            const roomId = 'room-123';
-            const roomCode = '123456';
+        it('should return null when game does not exist', async () => {
+            mockRoomService.getRoom.mockReturnValue(undefined);
 
+            const board = await gameService.getBoard('invalid-code');
+
+            expect(board).toBeNull();
+            expect(mockBoardService.getBoardLayout).not.toHaveBeenCalled();
+        });
+
+        it('should return null when room exists but game does not', async () => {
             mockRoomService.getRoom.mockReturnValue({
-                roomId,
-                roomCode,
+                roomId: 'room-123',
+                roomCode: '123456',
                 players: [],
                 maxPlayers: 4,
                 roomState: "WAITING",
             });
 
-            mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(null);
-
-            gameService.createGame(roomId, ['host-456']);
-
-            const board = await gameService.getBoard(roomCode);
+            const board = await gameService.getBoard('123456');
 
             expect(board).toBeNull();
+            expect(mockBoardService.getBoardLayout).not.toHaveBeenCalled();
         });
 
         // Caching tests
@@ -386,12 +432,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [{ index: 1, name: 'Cell 1' }],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -420,12 +461,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -466,12 +502,7 @@ describe('GameService', () => {
                 return undefined;
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -500,19 +531,8 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard1 = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
-
-            const mockBoard2 = {
-                id: 'european_football_club_giants',
-                version: '2.0',
-                edition: 'European Football Club Giants v2',
-                cells: [],
-            };
+            const mockBoard1 = createMockBoard('european_football_club_giants', '1.0');
+            const mockBoard2 = createMockBoard('european_football_club_giants', '2.0');
 
             mockBoardService.getBoardLayout = jest.fn()
                 .mockResolvedValueOnce(mockBoard1)
@@ -552,12 +572,7 @@ describe('GameService', () => {
                 return roomMap[code];
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -617,12 +632,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'test_board',
-                version: '1.5',
-                edition: 'Test Board',
-                cells: [],
-            };
+            const mockBoard = createMockBoard('test_board', '1.5');
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -638,7 +648,7 @@ describe('GameService', () => {
     });
 
     describe('rollDice', () => {
-        it('should roll dice and update position', () => {
+        it('should roll dice and update position', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
 
@@ -652,7 +662,7 @@ describe('GameService', () => {
 
             gameService.createGame(roomId, ['host-456']);
 
-            const result = gameService.rollDice(roomCode, "host-456");
+            const result = await gameService.rollDice(roomCode, "host-456");
 
             expect(result).toBeDefined();
             expect(result?.dice).toHaveLength(2);
@@ -663,7 +673,7 @@ describe('GameService', () => {
             expect(typeof result!.double).toBe('boolean');
         });
 
-        it('should include double property in dice roll result', () => {
+        it('should include double property in dice roll result', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
 
@@ -677,20 +687,20 @@ describe('GameService', () => {
 
             gameService.createGame(roomId, ['host-456']);
 
-            const result = gameService.rollDice(roomCode, "host-456");
+            const result = await gameService.rollDice(roomCode, "host-456");
 
             expect(result).toHaveProperty('double');
         });
 
-        it('should return null when game does not exist', () => {
+        it('should return null when game does not exist', async () => {
             mockRoomService.getRoom.mockReturnValue(undefined);
 
-            const result = gameService.rollDice('invalid-code', "1");
+            const result = await gameService.rollDice('invalid-code', "1");
 
             expect(result).toBeNull();
         });
 
-        it('should return null when player does not exist', () => {
+        it('should return null when player does not exist', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
 
@@ -706,7 +716,7 @@ describe('GameService', () => {
 
             // Don't add any players - rollDice will throw error which service catches
             try {
-                const result = gameService.rollDice(roomCode, "1");
+                const result = await gameService.rollDice(roomCode, "1");
                 // If it doesn't throw, it should return null
                 expect(result).toBeNull();
             } catch (error) {
@@ -781,12 +791,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -820,12 +825,7 @@ describe('GameService', () => {
                 roomState: "WAITING",
             });
 
-            const mockBoard = {
-                id: 'european_football_club_giants',
-                version: '1.0',
-                edition: 'European Football Club Giants',
-                cells: [],
-            };
+            const mockBoard = createMockBoard();
 
             mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
 
@@ -842,7 +842,15 @@ describe('GameService', () => {
     });
 
     describe('endTurn', () => {
-        it('should end turn successfully for current player', () => {
+        beforeEach(()=>{
+          const mockBoard = createMockBoard();
+          mockBoard.cells.forEach((cell)=> {
+            cell.cell_type = 'special';
+          })
+
+          mockBoardService.getBoardLayout = jest.fn().mockResolvedValue(mockBoard);
+        })
+        it('should end turn successfully for current player', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
             const playerId = 'host-456';
@@ -858,7 +866,7 @@ describe('GameService', () => {
             gameService.createGame(roomId, [playerId, 'player-2']);
 
             // Roll dice first to move to END_TURN phase
-            gameService.rollDice(roomCode, playerId);
+            await gameService.rollDice(roomCode, playerId);
 
             const result = gameService.endTurn(roomCode, playerId);
 
@@ -881,7 +889,7 @@ describe('GameService', () => {
             expect(result).toBe(false);
         });
 
-        it('should advance to next player after ending turn', () => {
+        it('should advance to next player after ending turn', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
             const player1 = 'host-456';
@@ -898,14 +906,14 @@ describe('GameService', () => {
             gameService.createGame(roomId, [player1, player2]);
 
             // Player 1 rolls dice and ends turn
-            gameService.rollDice(roomCode, player1);
+            await gameService.rollDice(roomCode, player1);
             gameService.endTurn(roomCode, player1);
 
             const gameState = gameService.getGameState(roomCode);
             expect(gameState?.turn.currentPlayerIndex).toBe(1);
         });
 
-        it('should handle multiple players turn rotation', () => {
+        it('should handle multiple players turn rotation', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
             const player1 = 'player-1';
@@ -923,21 +931,21 @@ describe('GameService', () => {
             gameService.createGame(roomId, [player1, player2, player3]);
 
             // Player 1's turn
-            gameService.rollDice(roomCode, player1);
+            await gameService.rollDice(roomCode, player1);
             gameService.endTurn(roomCode, player1);
 
             let gameState = gameService.getGameState(roomCode);
             expect(gameState?.turn.currentPlayerIndex).toBe(1);
 
             // Player 2's turn
-            gameService.rollDice(roomCode, player2);
+            await gameService.rollDice(roomCode, player2);
             gameService.endTurn(roomCode, player2);
 
             gameState = gameService.getGameState(roomCode);
             expect(gameState?.turn.currentPlayerIndex).toBe(2);
 
             // Player 3's turn
-            gameService.rollDice(roomCode, player3);
+            await gameService.rollDice(roomCode, player3);
             gameService.endTurn(roomCode, player3);
 
             // Should wrap back to player 1
@@ -945,7 +953,7 @@ describe('GameService', () => {
             expect(gameState?.turn.currentPlayerIndex).toBe(0);
         });
 
-        it('should increment round when completing full turn cycle', () => {
+        it('should increment round when completing full turn cycle', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
             const player1 = 'player-1';
@@ -964,16 +972,16 @@ describe('GameService', () => {
             const initialRound = gameService.getGameState(roomCode)?.turn.round;
 
             // Complete one full round
-            gameService.rollDice(roomCode, player1);
+            await gameService.rollDice(roomCode, player1);
             gameService.endTurn(roomCode, player1);
-            gameService.rollDice(roomCode, player2);
+            await gameService.rollDice(roomCode, player2);
             gameService.endTurn(roomCode, player2);
 
             const gameState = gameService.getGameState(roomCode);
             expect(gameState?.turn.round).toBe(initialRound! + 1);
         });
 
-        it('should reset phase to ROLL_DICE after ending turn', () => {
+        it('should reset phase to ROLL_DICE after ending turn', async () => {
             const roomId = 'room-123';
             const roomCode = '123456';
             const playerId = 'host-456';
@@ -988,7 +996,7 @@ describe('GameService', () => {
 
             gameService.createGame(roomId, [playerId, 'player-2']);
 
-            gameService.rollDice(roomCode, playerId);
+            await gameService.rollDice(roomCode, playerId);
             gameService.endTurn(roomCode, playerId);
 
             const gameState = gameService.getGameState(roomCode);

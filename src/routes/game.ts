@@ -279,4 +279,166 @@ router.get('/state', requireAuth, GameController.getGameState);
  */
 router.get('/board', requireAuth, GameController.getBoard);
 
+/**
+ * @swagger
+ * /api/game/buy:
+ *   post:
+ *     summary: Buy property at current position
+ *     description: Purchase the property the player has landed on. RoomCode is retrieved from user token (cookie). Player must be in BUY_PROPERTY phase and have sufficient funds.
+ *     tags: [Game]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Property purchased successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Missing required properties in token or insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Insufficient funds to purchase this property"
+ *       403:
+ *         description: Not player's turn or wrong game phase
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Not your turn"
+ *       404:
+ *         description: Game not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Game not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while buying property"
+ */
+router.post('/buy', requireAuth, GameController.buyProperty);
+
+/**
+ * @swagger
+ * /api/game/pass:
+ *   post:
+ *     summary: Pass on buying property at current position
+ *     description: Decline to purchase the property the player has landed on and proceed to end turn phase. RoomCode is retrieved from user token (cookie). Player must be in BUY_PROPERTY phase.
+ *     tags: [Game]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Property purchase declined successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Missing required properties in token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Required Property not found in token"
+ *       403:
+ *         description: Not player's turn or wrong game phase
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Not your turn"
+ *       404:
+ *         description: Game not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Game not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while passing property purchase"
+ */
+router.post('/pass', requireAuth, GameController.passProperty);
+
 export default router;

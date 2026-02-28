@@ -36,6 +36,7 @@ describe('RollDiceManager', () => {
                 round: 1,
             },
             lastDice: undefined,
+            currentTile: undefined,
             allowedActions: [Action.ROLL_DICE],
         };
     });

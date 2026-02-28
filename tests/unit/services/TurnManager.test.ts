@@ -45,6 +45,7 @@ describe('TurnManager', () => {
                 round: 1,
             },
             lastDice: undefined,
+            currentTile: undefined,
             allowedActions: [Action.ROLL_DICE],
         };
     });
@@ -202,12 +203,38 @@ describe('TurnManager', () => {
             expect(newState).not.toBe(mockGameState); // Should return new object
         });
 
-        it('should transition from MOVE_PLAYER to END_TURN', () => {
+        it('should transition from MOVE_PLAYER to RESOLVE_TILE', () => {
             mockGameState.phase = Phase.MOVE_PLAYER;
+            const newState = TurnManager.nextPhase(mockGameState);
+
+            expect(newState.phase).toBe(Phase.RESOLVE_TILE);
+        });
+
+        it('should transition from RESOLVE_TILE to END_TURN', () => {
+            mockGameState.phase = Phase.RESOLVE_TILE;
             const newState = TurnManager.nextPhase(mockGameState);
 
             expect(newState.phase).toBe(Phase.END_TURN);
         });
+
+        it('should transition from RESOLVE_TILE to BUY_PROPERTY When Current Tile is unowned', () => {
+            mockGameState.phase = Phase.RESOLVE_TILE;
+            mockGameState.currentTile = {
+                index: 1,
+                isOwned: false,
+                type: 'property',
+            };
+            const newState = TurnManager.nextPhase(mockGameState);
+
+            expect(newState.phase).toBe(Phase.BUY_PROPERTY);
+        });
+
+      it('should transition from BUY_PROPERTY to END_TURN', () => {
+        mockGameState.phase = Phase.BUY_PROPERTY;
+        const newState = TurnManager.nextPhase(mockGameState);
+
+        expect(newState.phase).toBe(Phase.END_TURN);
+      });
 
         it('should transition from END_TURN to ROLL_DICE', () => {
             mockGameState.phase = Phase.END_TURN;
@@ -223,13 +250,6 @@ describe('TurnManager', () => {
             expect(newState.phase).toBe(Phase.GAME_OVER);
         });
 
-        it('should stay in RESOLVE_TILE phase', () => {
-            mockGameState.phase = Phase.RESOLVE_TILE;
-            const newState = TurnManager.nextPhase(mockGameState);
-
-            expect(newState.phase).toBe(Phase.RESOLVE_TILE);
-        });
-
         it('should not modify original state', () => {
             mockGameState.phase = Phase.ROLL_DICE;
             const originalPhase = mockGameState.phase;
@@ -241,14 +261,8 @@ describe('TurnManager', () => {
     });
 
     describe('nextTurn', () => {
-        let turnManager: TurnManager;
-
-        beforeEach(() => {
-            turnManager = new TurnManager();
-        });
-
         it('should advance to next player', () => {
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.turn.currentPlayerIndex).toBe(1);
             expect(newState.turn.round).toBe(1); // Round should not increment
@@ -257,7 +271,7 @@ describe('TurnManager', () => {
         it('should wrap around to first player after last player', () => {
             mockGameState.turn.currentPlayerIndex = 2; // Last player
 
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.turn.currentPlayerIndex).toBe(0);
         });
@@ -266,7 +280,7 @@ describe('TurnManager', () => {
             mockGameState.turn.currentPlayerIndex = 2; // Last player
             mockGameState.turn.round = 1;
 
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.turn.currentPlayerIndex).toBe(0);
             expect(newState.turn.round).toBe(2);
@@ -276,7 +290,7 @@ describe('TurnManager', () => {
             mockGameState.turn.currentPlayerIndex = 0;
             mockGameState.turn.round = 3;
 
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.turn.currentPlayerIndex).toBe(1);
             expect(newState.turn.round).toBe(3); // Should stay the same
@@ -285,7 +299,7 @@ describe('TurnManager', () => {
         it('should reset phase to ROLL_DICE', () => {
             mockGameState.phase = Phase.END_TURN;
 
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.phase).toBe(Phase.ROLL_DICE);
         });
@@ -295,7 +309,7 @@ describe('TurnManager', () => {
             const originalRound = mockGameState.turn.round;
             const originalPhase = mockGameState.phase;
 
-            turnManager.nextTurn(mockGameState);
+            TurnManager.nextTurn(mockGameState);
 
             expect(mockGameState.turn.currentPlayerIndex).toBe(originalIndex);
             expect(mockGameState.turn.round).toBe(originalRound);
@@ -306,11 +320,11 @@ describe('TurnManager', () => {
             mockGameState.players = mockPlayers.slice(0, 2);
             mockGameState.turn.currentPlayerIndex = 0;
 
-            const state1 = turnManager.nextTurn(mockGameState);
+            const state1 = TurnManager.nextTurn(mockGameState);
             expect(state1.turn.currentPlayerIndex).toBe(1);
             expect(state1.turn.round).toBe(1);
 
-            const state2 = turnManager.nextTurn(state1);
+            const state2 = TurnManager.nextTurn(state1);
             expect(state2.turn.currentPlayerIndex).toBe(0);
             expect(state2.turn.round).toBe(2);
         });
@@ -328,14 +342,14 @@ describe('TurnManager', () => {
             mockGameState.players = [...mockPlayers, player4];
             mockGameState.turn.currentPlayerIndex = 2;
 
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.turn.currentPlayerIndex).toBe(3);
             expect(newState.turn.round).toBe(1);
         });
 
         it('should preserve player data', () => {
-            const newState = turnManager.nextTurn(mockGameState);
+            const newState = TurnManager.nextTurn(mockGameState);
 
             expect(newState.players).toBe(mockGameState.players);
         });

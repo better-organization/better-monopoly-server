@@ -62,6 +62,13 @@ export const RESPONSE_MESSAGES = {
 
   // Game controller errors
   ROLL_DICE_ERROR: 'An error occurred while rolling dice',
+  BUY_PROPERTY_ERROR: 'An error occurred while buying property',
+  PASS_PROPERTY_ERROR: 'An error occurred while passing property purchase',
+  NOT_YOUR_TURN: 'Not your turn',
+  WRONG_PHASE: 'Action not allowed in current game phase',
+  INSUFFICIENT_FUNDS: 'Insufficient funds to purchase this property',
+  PROPERTY_NOT_PURCHASABLE: 'This property cannot be purchased',
+  GAME_NOT_FOUND: 'Game not found',
 
   // Board controller errors
   BOARD_MISSING_PARAMETERS: 'Board ID and version are required',
