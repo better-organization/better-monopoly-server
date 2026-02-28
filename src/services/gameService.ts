@@ -108,14 +108,38 @@ export class GameService {
   /**
    * Roll dice action of a specific game by roomCode
    */
-  rollDice(roomCode: string, userId: string): DiceRollResponse | null {
+  async rollDice(
+    roomCode: string,
+    userId: string
+  ): Promise<DiceRollResponse | null> {
     const game = this.getGameByRoomCode(roomCode);
-    return game ? game.rollDiceAndUpdatePosition(userId) : null;
+    const board = await this.getBoard(roomCode);
+    if (!board) {
+      console.error(`Board not found for roomCode: ${roomCode}`);
+      return null;
+    }
+    return game ? game.rollDiceAndUpdatePosition(userId, board) : null;
   }
 
   endTurn(roomCode: string, userId: string): boolean {
     const game = this.getGameByRoomCode(roomCode);
     return game?.endTurn(userId) ?? false;
+  }
+
+  /**
+   * Buy property action of a specific game by roomCode
+   */
+  buyProperty(roomCode: string, userId: string): GameState | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.buyProperty(userId) : null;
+  }
+
+  /**
+   * Pass property purchase action of a specific game by roomCode
+   */
+  passProperty(roomCode: string, userId: string): GameState | null {
+    const game = this.getGameByRoomCode(roomCode);
+    return game ? game.skipBuy(userId) : null;
   }
 
   /**

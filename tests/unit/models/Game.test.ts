@@ -1,14 +1,64 @@
 // filepath: /Users/akashdey/Workspace/Monopoly/better-monopoly-server/tests/unit/models/Game.test.ts
 import { Game, DEFAULT_GAME_SETTINGS } from '../../../src/models/Game';
 import { Phase, Action } from '../../../src/types/game';
+import { GameStateManager } from '../../../src/services/GameStateManager';
+import { Board, FlattenedCell } from '../../../src/models/Board';
+
+// Helper function to create a mock board with 40 cells
+function createMockBoard(): Board {
+    const cells: FlattenedCell[] = [];
+    for (let i = 0; i < 40; i++) {
+        cells.push({
+            index: i,
+            name: `Cell ${i}`,
+            cell_type: 'property',
+            board_id: 'test_board',
+            board_versions: ['1.0'],
+        });
+    }
+
+    return {
+        id: 'test_board',
+        version: '1.0',
+        edition: 'Test Edition',
+        currency: 'USD',
+        currency_symbol: '$',
+        mortgage_percentage: '50',
+        sell_percentage: '50',
+        terms: {
+            player: 'Player',
+            property: 'Property',
+            transport: 'Transport',
+            utility: 'Utility',
+            house: 'House',
+            hotel: 'Hotel',
+            property_rent: 'Rent',
+            transport_rent: 'Fare',
+            utility_rent: 'Fee',
+            mortgage: 'Mortgage',
+            passing_go: 'Passing Go',
+            salary: 'Salary',
+            jail: 'Jail',
+            theft: 'Theft',
+            parking: 'Free Parking',
+            income_tax: 'Income Tax',
+            luxury_tax: 'Luxury Tax',
+            community_chest: 'Community Chest',
+            chance: 'Chance',
+        },
+        cells,
+    };
+}
 
 describe('Game Model', () => {
     let game: Game;
+    let mockBoard: Board;
     const mockRoomId = 'test-room-123';
     const mockPlayerIds = ['host-456', 'player-789'];
 
     beforeEach(() => {
         game = new Game(mockRoomId, mockPlayerIds);
+        mockBoard = createMockBoard();
     });
 
     describe('Constructor', () => {
@@ -136,7 +186,7 @@ describe('Game Model', () => {
 
     describe('rollDiceAndUpdatePosition', () => {
         it('should roll dice and return result with new position', () => {
-            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
 
             expect(result.dice).toHaveLength(2);
             expect(result.dice[0]).toBeGreaterThanOrEqual(1);
@@ -150,12 +200,12 @@ describe('Game Model', () => {
         });
 
         it('should update player position in game state after rolling', () => {
-            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
             expect(game.gameState.players[0]!.position).toBe(result.newPosition);
         });
 
         it('should update lastDice in game state', () => {
-            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
             expect(game.gameState.lastDice).toBeDefined();
             expect(game.gameState.lastDice?.dice).toEqual(result.dice);
             expect(game.gameState.lastDice?.total).toBe(result.total);
@@ -168,20 +218,20 @@ describe('Game Model', () => {
                 now: jest.fn().mockReturnValue(mockDate),
             };
 
-            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockTimeService);
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard, mockTimeService);
             expect(result.timestamp).toBe(mockDate);
             expect(mockTimeService.now).toHaveBeenCalled();
         });
 
         it('should throw error when it is not the player\'s turn', () => {
             expect(() => {
-                game.rollDiceAndUpdatePosition(mockPlayerIds[1]!); // Player 1 trying to roll when it's player 0's turn
+                game.rollDiceAndUpdatePosition(mockPlayerIds[1]!, mockBoard); // Player 1 trying to roll when it's player 0's turn
             }).toThrow("Not your turn");
         });
 
         it('should throw error when player not found', () => {
             expect(() => {
-                game.rollDiceAndUpdatePosition("nonexistent-player");
+                game.rollDiceAndUpdatePosition("nonexistent-player", mockBoard);
             }).toThrow("Not your turn");
         });
 
@@ -189,7 +239,7 @@ describe('Game Model', () => {
             const initialPhase = game.gameState.phase;
             expect(initialPhase).toBe(Phase.ROLL_DICE);
 
-            game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
 
             // After rolling, moving, and resolving, phase should have changed
             const finalPhase = game.gameState.phase;
@@ -197,7 +247,7 @@ describe('Game Model', () => {
         });
 
         it('should allow multiple players to take turns', () => {
-            const result1 = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            const result1 = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
             expect(game.gameState.players[0]!.position).toBe(result1.newPosition);
 
             // After player 0's turn, it should be player 1's turn or game should handle it appropriately
@@ -208,7 +258,7 @@ describe('Game Model', () => {
 
     describe('initializeGameState', () => {
         it('should create game state with correct structure', () => {
-            const state = game.initializeGameState(mockPlayerIds);
+            const state = GameStateManager.initializeGameState(mockPlayerIds, DEFAULT_GAME_SETTINGS);
 
             expect(state.phase).toBe(Phase.ROLL_DICE);
             expect(state.players).toHaveLength(2);
@@ -220,7 +270,7 @@ describe('Game Model', () => {
 
     describe('initializePlayers', () => {
         it('should create players with correct initial values', () => {
-            const players = game.initializePlayers(mockPlayerIds);
+            const players = GameStateManager.initializePlayers(mockPlayerIds, DEFAULT_GAME_SETTINGS);
 
             expect(players).toHaveLength(2);
             expect(players[0]!.player_id).toBe(mockPlayerIds[0]);
@@ -233,7 +283,7 @@ describe('Game Model', () => {
         });
 
         it('should assign correct turn order to players', () => {
-            const players = game.initializePlayers(mockPlayerIds);
+            const players = GameStateManager.initializePlayers(mockPlayerIds, DEFAULT_GAME_SETTINGS);
 
             expect(players[0]!.player_turn).toBe(0);
             expect(players[1]!.player_turn).toBe(1);
@@ -241,7 +291,7 @@ describe('Game Model', () => {
 
         it('should handle different player counts', () => {
             const threePlayerIds = ['p1', 'p2', 'p3'];
-            const players = game.initializePlayers(threePlayerIds);
+            const players = GameStateManager.initializePlayers(threePlayerIds, DEFAULT_GAME_SETTINGS);
 
             expect(players).toHaveLength(3);
             expect(players[2]!.player_turn).toBe(2);
@@ -251,7 +301,10 @@ describe('Game Model', () => {
     describe('endTurn', () => {
         beforeEach(() => {
             // Roll dice to move to END_TURN phase
-            game.rollDiceAndUpdatePosition(mockPlayerIds[0]!);
+            mockBoard.cells.forEach((cell) => {
+                cell.cell_type = 'special';
+            });
+            game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
         });
 
         it('should successfully end turn for current player', () => {
@@ -290,7 +343,7 @@ describe('Game Model', () => {
         it('should wrap to first player after last player', () => {
             // Get to player 2's turn (last player)
             game.endTurn(mockPlayerIds[0]!); // Player 0 ends turn
-            game.rollDiceAndUpdatePosition(mockPlayerIds[1]!); // Player 1 rolls
+            game.rollDiceAndUpdatePosition(mockPlayerIds[1]!, mockBoard); // Player 1 rolls
             game.endTurn(mockPlayerIds[1]!); // Player 1 ends turn
 
             // Now it should be back to player 0
@@ -302,7 +355,7 @@ describe('Game Model', () => {
 
             // Complete round for both players
             game.endTurn(mockPlayerIds[0]!);
-            game.rollDiceAndUpdatePosition(mockPlayerIds[1]!);
+            game.rollDiceAndUpdatePosition(mockPlayerIds[1]!, mockBoard);
             game.endTurn(mockPlayerIds[1]!);
 
             expect(game.gameState.turn.round).toBe(initialRound + 1);

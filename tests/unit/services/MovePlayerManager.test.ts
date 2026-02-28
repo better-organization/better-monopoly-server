@@ -49,6 +49,7 @@ describe('MovePlayerManager', () => {
                 total: 7,
                 double: false,
             },
+            currentTile: undefined,
             allowedActions: [Action.MOVE_PLAYER],
         };
     });
@@ -263,16 +264,16 @@ describe('MovePlayerManager', () => {
         });
 
         it('should handle moving player with properties', () => {
-            mockGameState.players[0]!.property_owns = ['property1', 'property2'];
-            mockGameState.players[0]!.utility_owns = ['utility1'];
-            mockGameState.players[0]!.transport_owns = ['transport1'];
+            mockGameState.players[0]!.property_owns = [1, 2];
+            mockGameState.players[0]!.utility_owns = [3];
+            mockGameState.players[0]!.transport_owns = [4];
 
             const newState = MovePlayerManager.movePlayer(mockGameState);
 
             expect(newState.players[0]!.position).toBe(7);
-            expect(newState.players[0]!.property_owns).toEqual(['property1', 'property2']);
-            expect(newState.players[0]!.utility_owns).toEqual(['utility1']);
-            expect(newState.players[0]!.transport_owns).toEqual(['transport1']);
+            expect(newState.players[0]!.property_owns).toEqual([1, 2]);
+            expect(newState.players[0]!.utility_owns).toEqual([3]);
+            expect(newState.players[0]!.transport_owns).toEqual([4]);
         });
     });
 

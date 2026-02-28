@@ -1,11 +1,14 @@
 // Game Model
 // Game entity class and related interfaces
 
-import { Action, DiceRollResponse, GameState, Phase } from '../types/game';
+import { Action, DiceRollResponse, GameState } from '../types/game';
 import { ITimeService, timeService } from '../services/timeService';
 import { TurnManager } from '../services/TurnManager';
 import { RollDiceManager } from '../services/RollDiceManager';
 import { MovePlayerManager } from '../services/MovePlayerManager';
+import { TileManager } from '../services/TileManager';
+import { Board } from './Board';
+import { GameStateManager } from '../services/GameStateManager';
 
 // Player interface
 export interface IPlayer {
@@ -13,9 +16,9 @@ export interface IPlayer {
   player_turn: number;
   position: number;
   player_money: number;
-  property_owns: string[];
-  utility_owns: string[];
-  transport_owns: string[];
+  property_owns: number[];
+  utility_owns: number[];
+  transport_owns: number[];
 }
 
 // Game settings interface
@@ -65,39 +68,17 @@ export class Game {
     this.gameSettings = DEFAULT_GAME_SETTINGS;
     this.createdAt = new Date();
     this.updatedAt = new Date();
-    this.gameState = this.initializeGameState(playerIds);
-  }
-
-  initializeGameState(playerIds: string[]): GameState {
-    return {
-      phase: Phase.ROLL_DICE,
-      players: this.initializePlayers(playerIds),
-      turn: {
-        currentPlayerIndex: 0,
-        round: 1,
-      },
-      lastDice: undefined,
-      allowedActions: TurnManager.allowedActions(Phase.ROLL_DICE),
-    };
-  }
-
-  initializePlayers(playerIds: string[]): IPlayer[] {
-    return playerIds.map((playerId, index) => ({
-      player_id: playerId,
-      player_turn: index,
-      position: 0,
-      player_money: this.gameSettings.startingMoney,
-      property_owns: [],
-      utility_owns: [],
-      transport_owns: [],
-    }));
+    this.gameState = GameStateManager.initializeGameState(
+      playerIds,
+      this.gameSettings
+    );
   }
 
   /**
    * Get current game state
    */
   getGameState(): GameState {
-    return { ...this.gameState };
+    return GameStateManager.shallowCopyGameState(this.gameState);
   }
 
   /**
@@ -112,6 +93,7 @@ export class Game {
 
   rollDiceAndUpdatePosition(
     playerId: string,
+    board: Board,
     timeServiceInstance: ITimeService = timeService
   ): DiceRollResponse {
     TurnManager.assertPlayerTurn(this.gameState, playerId);
@@ -121,6 +103,8 @@ export class Game {
     this.gameState = TurnManager.nextPhase(this.gameState);
     this.gameState = MovePlayerManager.movePlayer(this.gameState);
     this.gameState = TurnManager.nextPhase(this.gameState);
+    this.gameState = TileManager.resolveTile(this.gameState, board);
+    this.gameState = TurnManager.nextPhase(this.gameState);
 
     const timestamp = timeServiceInstance.now();
     const newPosition = MovePlayerManager.currentPlayerPosition(this.gameState);
@@ -128,11 +112,30 @@ export class Game {
     return { ...this.gameState.lastDice!, timestamp, newPosition };
   }
 
+  skipBuy(playerId: string): GameState {
+    TurnManager.assertPlayerTurn(this.gameState, playerId);
+    TurnManager.assertPhase(this.gameState, Action.BUY_PROPERTY);
+
+    this.gameState = TurnManager.nextPhase(this.gameState);
+
+    return { ...this.gameState };
+  }
+
+  buyProperty(playerId: string): GameState {
+    TurnManager.assertPlayerTurn(this.gameState, playerId);
+    TurnManager.assertPhase(this.gameState, Action.BUY_PROPERTY);
+
+    this.gameState = TileManager.buyTile(this.gameState);
+    this.gameState = TurnManager.nextPhase(this.gameState);
+
+    return { ...this.gameState };
+  }
+
   endTurn(playerId: string): boolean {
     TurnManager.assertPlayerTurn(this.gameState, playerId);
     TurnManager.assertPhase(this.gameState, Action.END_TURN);
 
-    this.gameState = new TurnManager().nextTurn(this.gameState);
+    this.gameState = TurnManager.nextTurn(this.gameState);
     return true;
   }
 }
