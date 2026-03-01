@@ -6,6 +6,7 @@ export const ALLOWED_ACTIONS: Record<Phase, Action[]> = {
   [Phase.MOVE_PLAYER]: [Action.MOVE_PLAYER],
   [Phase.RESOLVE_TILE]: [Action.RESOLVE_TILE],
   [Phase.BUY_PROPERTY]: [Action.BUY_PROPERTY, Action.SKIP_BUY],
+  [Phase.PAY_RENT]: [Action.PAY_RENT],
   [Phase.END_TURN]: [Action.END_TURN],
   [Phase.GAME_OVER]: [],
 };
@@ -56,6 +57,10 @@ export class TurnManager {
         Phase.END_TURN,
         ALLOWED_ACTIONS[Phase.END_TURN],
       ],
+      [Phase.PAY_RENT]: () => [
+        Phase.END_TURN,
+        ALLOWED_ACTIONS[Phase.END_TURN],
+      ],
       [Phase.END_TURN]: () => [
         Phase.ROLL_DICE,
         ALLOWED_ACTIONS[Phase.ROLL_DICE],
@@ -78,6 +83,13 @@ export class TurnManager {
   private static resolveTilePhaseChange(state: GameState): [Phase, Action[]] {
     if (state.currentTile && !state.currentTile.isOwned) {
       return [Phase.BUY_PROPERTY, ALLOWED_ACTIONS[Phase.BUY_PROPERTY]];
+    }
+
+    if (
+      state.currentTile?.isOwned &&
+      !state.currentTile.isOwnerCurrentPlayer
+    ) {
+      return [Phase.PAY_RENT, ALLOWED_ACTIONS[Phase.PAY_RENT]];
     }
 
     return [Phase.END_TURN, ALLOWED_ACTIONS[Phase.END_TURN]];

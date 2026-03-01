@@ -12,6 +12,7 @@ export enum Phase {
   END_TURN = 'END_TURN',
   GAME_OVER = 'GAME_OVER',
   BUY_PROPERTY = 'BUY_PROPERTY',
+  PAY_RENT = 'PAY_RENT',
 }
 
 export enum Action {
@@ -21,6 +22,7 @@ export enum Action {
   END_TURN = 'END_TURN',
   BUY_PROPERTY = 'BUY_PROPERTY',
   SKIP_BUY = 'SKIP_BUY',
+  PAY_RENT = 'PAY_RENT',
 }
 
 /**
@@ -74,7 +76,14 @@ export interface TileInfo {
   ownerId?: string;
   isOwnerCurrentPlayer?: boolean;
   price?: number;
-  rent?: number;
+  rentAmount?: number | undefined;
+}
+
+export interface RentEvent {
+  payerId: string;
+  ownerId: string;
+  amount: number;
+  tileName?: string;
 }
 
 // Game state response for polling

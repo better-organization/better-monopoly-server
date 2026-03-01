@@ -1,12 +1,13 @@
 // Game Model
 // Game entity class and related interfaces
 
-import { Action, DiceRollResponse, GameState } from '../types/game';
+import { Action, DiceRollResponse, GameState, RentEvent } from '../types/game';
 import { ITimeService, timeService } from '../services/timeService';
 import { TurnManager } from '../services/TurnManager';
 import { RollDiceManager } from '../services/RollDiceManager';
 import { MovePlayerManager } from '../services/MovePlayerManager';
 import { TileManager } from '../services/TileManager';
+import { RentManager } from '../services/RentManager';
 import { Board } from './Board';
 import { GameStateManager } from '../services/GameStateManager';
 
@@ -129,6 +130,17 @@ export class Game {
     this.gameState = TurnManager.nextPhase(this.gameState);
 
     return { ...this.gameState };
+  }
+
+  payRent(playerId: string): RentEvent {
+    TurnManager.assertPlayerTurn(this.gameState, playerId);
+    TurnManager.assertPhase(this.gameState, Action.PAY_RENT);
+
+    const { state, event } = RentManager.chargeRent(this.gameState);
+    this.gameState = state;
+    this.gameState = TurnManager.nextPhase(this.gameState);
+
+    return event;
   }
 
   endTurn(playerId: string): boolean {

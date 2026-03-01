@@ -69,6 +69,8 @@ export const RESPONSE_MESSAGES = {
   INSUFFICIENT_FUNDS: 'Insufficient funds to purchase this property',
   PROPERTY_NOT_PURCHASABLE: 'This property cannot be purchased',
   GAME_NOT_FOUND: 'Game not found',
+  PAY_RENT_ERROR: 'An error occurred while paying rent',
+  RENT_CHARGE_FAILED: 'Failed to charge rent',
 
   // Board controller errors
   BOARD_MISSING_PARAMETERS: 'Board ID and version are required',

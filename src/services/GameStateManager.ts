@@ -2,6 +2,7 @@ import { Action, DiceRollResult, GameState, Phase } from '../types/game';
 import { TurnManager } from './TurnManager';
 import { GameSettings, IPlayer } from '../models/Game';
 import { FlattenedCell } from '../models/Board';
+import { RentManager } from './RentManager';
 
 export class GameStateManager {
   static initializeGameState(
@@ -116,13 +117,36 @@ export class GameStateManager {
           ? tile.transport_price!
           : tile.utility_price!;
 
+    const isOwnerCurrentPlayer =
+      owner !== undefined &&
+      owner.player_turn === gameState.turn.currentPlayerIndex;
+
+    let rentAmount: number | undefined;
+    if (owner && !isOwnerCurrentPlayer) {
+      const diceTotal = gameState.lastDice?.total ?? 0;
+      if (tile.cell_type === 'property') {
+        rentAmount = RentManager.calcPropertyRent(tile.house_rent);
+      } else if (tile.cell_type === 'transport') {
+        rentAmount = RentManager.calcTransportRent(
+          tile.transport_rent,
+          owner.transport_owns.length
+        );
+      } else if (tile.cell_type === 'utility') {
+        rentAmount = RentManager.calcUtilityRent(
+          tile.utility_rent_multiplier,
+          owner.utility_owns.length,
+          diceTotal
+        );
+      }
+    }
+
     const tileDetails = owner
       ? {
-          isOwned: true,
-          ownerId: owner.player_id,
-          isOwnerCurrentPlayer:
-            owner.player_turn === gameState.turn.currentPlayerIndex,
-        }
+        isOwned: true,
+        ownerId: owner.player_id,
+        isOwnerCurrentPlayer,
+        rentAmount,
+      }
       : { isOwned: false, price };
 
     return {
