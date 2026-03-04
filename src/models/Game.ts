@@ -1,7 +1,7 @@
 // Game Model
 // Game entity class and related interfaces
 
-import { Action, DiceRollResponse, GameState, RentEvent } from '../types/game';
+import { Action, DiceRollResponse, GameState } from '../types/game';
 import { ITimeService, timeService } from '../services/timeService';
 import { TurnManager } from '../services/TurnManager';
 import { RollDiceManager } from '../services/RollDiceManager';
@@ -105,12 +105,22 @@ export class Game {
     this.gameState = MovePlayerManager.movePlayer(this.gameState);
     this.gameState = TurnManager.nextPhase(this.gameState);
     this.gameState = TileManager.resolveTile(this.gameState, board);
+    let rentEvent: DiceRollResponse['rentEvent'];
+    if (
+      this.gameState.currentTile?.isOwned &&
+      !this.gameState.currentTile.isOwnerCurrentPlayer
+    ) {
+      const { state, event } = RentManager.chargeRent(this.gameState);
+      this.gameState = state;
+      rentEvent = event;
+    }
+
     this.gameState = TurnManager.nextPhase(this.gameState);
 
     const timestamp = timeServiceInstance.now();
     const newPosition = MovePlayerManager.currentPlayerPosition(this.gameState);
 
-    return { ...this.gameState.lastDice!, timestamp, newPosition };
+    return { ...this.gameState.lastDice!, timestamp, newPosition, rentEvent };
   }
 
   skipBuy(playerId: string): GameState {
@@ -130,17 +140,6 @@ export class Game {
     this.gameState = TurnManager.nextPhase(this.gameState);
 
     return { ...this.gameState };
-  }
-
-  payRent(playerId: string): RentEvent {
-    TurnManager.assertPlayerTurn(this.gameState, playerId);
-    TurnManager.assertPhase(this.gameState, Action.PAY_RENT);
-
-    const { state, event } = RentManager.chargeRent(this.gameState);
-    this.gameState = state;
-    this.gameState = TurnManager.nextPhase(this.gameState);
-
-    return event;
   }
 
   endTurn(playerId: string): boolean {

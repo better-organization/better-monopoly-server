@@ -5,7 +5,6 @@ import { ResponseType } from '../types/response';
 import { RESPONSE_MESSAGES } from '../utils/responseMessages';
 import { TurnManagerError } from '../services/TurnManager';
 import { TileManagerError } from '../services/TileManager';
-import { RentManagerError } from '../services/RentManager';
 
 export class GameController {
   /**
@@ -61,7 +60,6 @@ export class GameController {
     try {
       const roomCode = req.user?.roomCode;
       const userId = req.user?.userId;
-      console.log("useriddddddddddd", userId, roomCode)
 
       if (!userId || !roomCode) {
         res.status(400).json({
@@ -74,9 +72,9 @@ export class GameController {
       console.log(`Rolling dice for room: ${roomCode}, player: ${userId}`);
 
       const gameService = GameService.getInstance();
-      const diceResult = await gameService.rollDice(roomCode, userId);
+      const result = await gameService.rollDice(roomCode, userId);
 
-      if (!diceResult) {
+      if (!result) {
         res.status(404).json({
           success: false,
           message: 'Game or player not found',
@@ -87,10 +85,11 @@ export class GameController {
       const response: ResponseType<DiceRollData> = {
         success: true,
         data: {
-          dice: diceResult.dice,
-          total: diceResult.total,
-          timestamp: diceResult.timestamp.toISOString(),
-          newPosition: diceResult.newPosition,
+          dice: result.dice,
+          total: result.total,
+          timestamp: result.timestamp.toISOString(),
+          newPosition: result.newPosition,
+          rentEvent: result.rentEvent,
         },
       };
 
@@ -320,75 +319,6 @@ export class GameController {
           error instanceof Error
             ? error.message
             : RESPONSE_MESSAGES.PASS_PROPERTY_ERROR,
-      });
-    }
-  }
-
-  /**
-   * POST /api/game/pay-rent
-   * Pay rent when landing on another player's property
-   * Gets roomCode from user token (cookie)
-   */
-  static payRent(req: Request, res: Response): void {
-    try {
-      const roomCode = req.user?.roomCode;
-      const userId = req.user?.userId;
-
-      if (!userId || !roomCode) {
-        res.status(400).json({
-          success: false,
-          message: RESPONSE_MESSAGES.REQUIRED_PROPERTY_NOT_FOUND_IN_TOKEN,
-        });
-        return;
-      }
-
-      console.log(`Paying rent for room: ${roomCode}, player: ${userId}`);
-
-      const gameService = GameService.getInstance();
-      const result = gameService.payRent(roomCode, userId);
-
-      if (!result) {
-        res.status(404).json({
-          success: false,
-          message: RESPONSE_MESSAGES.GAME_NOT_FOUND,
-        });
-        return;
-      }
-
-      const response: ResponseType<{ payerId: string; ownerId: string; amount: number }> = {
-        success: true,
-        data: result,
-      };
-
-      res.status(200).json(response);
-    } catch (error) {
-      console.error('Pay rent error:', error);
-
-      // Handle TurnManagerError (wrong turn or wrong phase) with 403
-      if (error instanceof TurnManagerError) {
-        res.status(403).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      // Handle RentManagerError (no tile, not owned, etc.) with 400
-      if (error instanceof RentManagerError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      // Generic error handling
-      res.status(500).json({
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : RESPONSE_MESSAGES.PAY_RENT_ERROR,
       });
     }
   }

@@ -10,7 +10,8 @@ export interface SpecialDetails {
 }
 
 export interface UtilityDetails {
-  utility_price: number;
+  utility_price?: number;
+  property_price?: number;
   utility_rent_multiplier: Map<string, number>;
 }
 

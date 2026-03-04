@@ -112,41 +112,29 @@ export class GameStateManager {
 
     const price =
       tile.cell_type === 'property'
-        ? tile.property_price!
+        ? (tile.property_price ?? 0)
         : tile.cell_type === 'transport'
-          ? tile.transport_price!
-          : tile.utility_price!;
+          ? (tile.transport_price ?? 0)
+          : (tile.utility_price ?? 0);
 
     const isOwnerCurrentPlayer =
       owner !== undefined &&
       owner.player_turn === gameState.turn.currentPlayerIndex;
 
     let rentAmount: number | undefined;
+
     if (owner && !isOwnerCurrentPlayer) {
       const diceTotal = gameState.lastDice?.total ?? 0;
-      if (tile.cell_type === 'property') {
-        rentAmount = RentManager.calcPropertyRent(tile.house_rent);
-      } else if (tile.cell_type === 'transport') {
-        rentAmount = RentManager.calcTransportRent(
-          tile.transport_rent,
-          owner.transport_owns.length
-        );
-      } else if (tile.cell_type === 'utility') {
-        rentAmount = RentManager.calcUtilityRent(
-          tile.utility_rent_multiplier,
-          owner.utility_owns.length,
-          diceTotal
-        );
-      }
+      rentAmount = this.setCurrentTileRent(tile, owner, diceTotal);
     }
 
     const tileDetails = owner
       ? {
-        isOwned: true,
-        ownerId: owner.player_id,
-        isOwnerCurrentPlayer,
-        rentAmount,
-      }
+          isOwned: true,
+          ownerId: owner.player_id,
+          isOwnerCurrentPlayer,
+          rentAmount,
+        }
       : { isOwned: false, price };
 
     return {
@@ -157,5 +145,28 @@ export class GameStateManager {
         ...tileDetails,
       },
     };
+  }
+
+  static setCurrentTileRent(
+    tile: FlattenedCell,
+    owner: IPlayer | undefined,
+    diceTotal: number
+  ) {
+    const rentAmount = {
+      property: () => RentManager.calcPropertyRent(tile.house_rent),
+      transport: () =>
+        RentManager.calcTransportRent(
+          tile.transport_rent,
+          owner!.transport_owns.length
+        ),
+      utility: () =>
+        RentManager.calcUtilityRent(
+          tile.utility_rent_multiplier,
+          owner!.utility_owns.length,
+          diceTotal
+        ),
+    };
+
+    return rentAmount[tile.cell_type as keyof typeof rentAmount]();
   }
 }

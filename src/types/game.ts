@@ -12,7 +12,6 @@ export enum Phase {
   END_TURN = 'END_TURN',
   GAME_OVER = 'GAME_OVER',
   BUY_PROPERTY = 'BUY_PROPERTY',
-  PAY_RENT = 'PAY_RENT',
 }
 
 export enum Action {
@@ -22,7 +21,6 @@ export enum Action {
   END_TURN = 'END_TURN',
   BUY_PROPERTY = 'BUY_PROPERTY',
   SKIP_BUY = 'SKIP_BUY',
-  PAY_RENT = 'PAY_RENT',
 }
 
 /**
@@ -55,6 +53,7 @@ export interface DiceRollResponse {
   timestamp: Date;
   newPosition: number;
   double: boolean;
+  rentEvent?: RentEvent | undefined;
 }
 
 export interface DiceRollData {
@@ -62,6 +61,7 @@ export interface DiceRollData {
   total: number;
   timestamp: string;
   newPosition: number;
+  rentEvent?: RentEvent | undefined;
 }
 
 export interface Turn {

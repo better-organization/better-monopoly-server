@@ -4,7 +4,7 @@
 
 import { Game } from '../models/Game';
 import { Board } from '../models/Board';
-import { DiceRollResponse, GameState, RentEvent } from '../types/game';
+import { DiceRollResponse, GameState } from '../types/game';
 import { RoomService } from './roomService';
 import { BoardService } from './boardService';
 
@@ -140,14 +140,6 @@ export class GameService {
   passProperty(roomCode: string, userId: string): GameState | null {
     const game = this.getGameByRoomCode(roomCode);
     return game ? game.skipBuy(userId) : null;
-  }
-
-  /**
-   * Pay rent action of a specific game by roomCode
-   */
-  payRent(roomCode: string, userId: string): RentEvent | null {
-    const game = this.getGameByRoomCode(roomCode);
-    return game ? game.payRent(userId) : null;
   }
 
   /**
