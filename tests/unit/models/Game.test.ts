@@ -254,6 +254,171 @@ describe('Game Model', () => {
             const player0Position = game.gameState.players[0]!.position;
             expect(player0Position).toBeGreaterThan(0);
         });
+
+        it('should return rentEvent as undefined when landing on an unowned tile', () => {
+            const result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, mockBoard);
+            expect(result.rentEvent).toBeUndefined();
+        });
+    });
+
+    describe('rollDiceAndUpdatePosition — automatic rent', () => {
+
+        function buildBoardWithOwnedCell(rentAmount: number): Board {
+            const board = createMockBoard();
+            board.cells[5] = {
+                index: 5,
+                name: 'Owned Property',
+                cell_type: 'property',
+                cell_sub_type: 'TEST',
+                board_id: 'test_board',
+                board_versions: ['1.0'],
+                property_price: 100,
+                house_rent: new Map([['0', rentAmount]]),
+                house_price: 50,
+            };
+            return board;
+        }
+
+        beforeEach(() => {
+            // Give player-789 ownership of cell index 5
+            game['gameState'] = {
+                ...game.gameState,
+                players: [
+                    { ...game.gameState.players[0]!, position: 0, player_money: 1500 },
+                    { ...game.gameState.players[1]!, position: 0, player_money: 500, property_owns: [5] },
+                ],
+            };
+        });
+
+        it('should automatically deduct rent from payer and credit to owner', () => {
+            const board = buildBoardWithOwnedCell(14);
+            let result;
+            let attempts = 0;
+            do {
+                game['gameState'] = {
+                    ...game.gameState,
+                    players: [
+                        { ...game.gameState.players[0]!, position: 0, player_money: 1500 },
+                        { ...game.gameState.players[1]!, position: 0, player_money: 500, property_owns: [5] },
+                    ],
+                    phase: Phase.ROLL_DICE,
+                    allowedActions: [Action.ROLL_DICE],
+                    currentTile: undefined,
+                };
+                result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, board);
+                attempts++;
+            } while (result.newPosition !== 5 && attempts < 50);
+
+            if (result.newPosition === 5) {
+                expect(game.gameState.players[0]!.player_money).toBe(1500 - 14);
+                expect(game.gameState.players[1]!.player_money).toBe(500 + 14);
+            }
+        });
+
+        it('should include rentEvent in the dice roll response when landing on opponent tile', () => {
+            const board = buildBoardWithOwnedCell(14);
+
+            let result;
+            let attempts = 0;
+            do {
+                game['gameState'] = {
+                    ...game.gameState,
+                    players: [
+                        { ...game.gameState.players[0]!, position: 0, player_money: 1500 },
+                        { ...game.gameState.players[1]!, position: 0, player_money: 500, property_owns: [5] },
+                    ],
+                    phase: Phase.ROLL_DICE,
+                    allowedActions: [Action.ROLL_DICE],
+                    currentTile: undefined,
+                };
+                result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, board);
+                attempts++;
+            } while (result.newPosition !== 5 && attempts < 50);
+
+            if (result.newPosition === 5) {
+                expect(result.rentEvent).toBeDefined();
+                expect(result.rentEvent!.payerId).toBe(mockPlayerIds[0]);
+                expect(result.rentEvent!.ownerId).toBe(mockPlayerIds[1]);
+                expect(result.rentEvent!.amount).toBe(14);
+            }
+        });
+
+        it('should transition to END_TURN phase (not a separate PAY_RENT phase) after landing on opponent tile', () => {
+            const board = buildBoardWithOwnedCell(14);
+
+            let result;
+            let attempts = 0;
+            do {
+                game['gameState'] = {
+                    ...game.gameState,
+                    players: [
+                        { ...game.gameState.players[0]!, position: 0, player_money: 1500 },
+                        { ...game.gameState.players[1]!, position: 0, player_money: 500, property_owns: [5] },
+                    ],
+                    phase: Phase.ROLL_DICE,
+                    allowedActions: [Action.ROLL_DICE],
+                    currentTile: undefined,
+                };
+                result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, board);
+                attempts++;
+            } while (result.newPosition !== 5 && attempts < 50);
+
+            if (result.newPosition === 5) {
+                expect(game.gameState.phase).toBe(Phase.END_TURN);
+            }
+        });
+
+        it('should NOT charge rent when landing on own property', () => {
+            const board = buildBoardWithOwnedCell(14);
+
+            // Give cell 5 to player-0 instead
+            game['gameState'] = {
+                ...game.gameState,
+                players: [
+                    { ...game.gameState.players[0]!, position: 0, player_money: 1500, property_owns: [5] },
+                    { ...game.gameState.players[1]!, position: 0, player_money: 500, property_owns: [] },
+                ],
+                phase: Phase.ROLL_DICE,
+                allowedActions: [Action.ROLL_DICE],
+            };
+
+            let result;
+            let attempts = 0;
+            do {
+                game['gameState'] = {
+                    ...game.gameState,
+                    players: [
+                        { ...game.gameState.players[0]!, position: 0 },
+                        { ...game.gameState.players[1]!, position: 0 },
+                    ],
+                    phase: Phase.ROLL_DICE,
+                    allowedActions: [Action.ROLL_DICE],
+                    currentTile: undefined,
+                };
+                result = game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, board);
+                attempts++;
+            } while (result.newPosition !== 5 && attempts < 50);
+
+            if (result.newPosition === 5) {
+                // No rent deducted
+                expect(game.gameState.players[0]!.player_money).toBe(1500);
+                expect(result.rentEvent).toBeUndefined();
+            }
+        });
+
+        it('should throw if called out of turn', () => {
+            expect(() =>
+                game.rollDiceAndUpdatePosition(mockPlayerIds[1]!, buildBoardWithOwnedCell(14))
+            ).toThrow('Not your turn');
+        });
+
+        it('should throw if called in the wrong phase', () => {
+            // Manually set phase to END_TURN
+            game['gameState'] = { ...game.gameState, phase: Phase.END_TURN, allowedActions: [Action.END_TURN] };
+            expect(() =>
+                game.rollDiceAndUpdatePosition(mockPlayerIds[0]!, buildBoardWithOwnedCell(14))
+            ).toThrow('Action ROLL_DICE not allowed in phase END_TURN');
+        });
     });
 
     describe('initializeGameState', () => {

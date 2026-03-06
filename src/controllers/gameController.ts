@@ -72,9 +72,9 @@ export class GameController {
       console.log(`Rolling dice for room: ${roomCode}, player: ${userId}`);
 
       const gameService = GameService.getInstance();
-      const diceResult = await gameService.rollDice(roomCode, userId);
+      const result = await gameService.rollDice(roomCode, userId);
 
-      if (!diceResult) {
+      if (!result) {
         res.status(404).json({
           success: false,
           message: 'Game or player not found',
@@ -85,10 +85,11 @@ export class GameController {
       const response: ResponseType<DiceRollData> = {
         success: true,
         data: {
-          dice: diceResult.dice,
-          total: diceResult.total,
-          timestamp: diceResult.timestamp.toISOString(),
-          newPosition: diceResult.newPosition,
+          dice: result.dice,
+          total: result.total,
+          timestamp: result.timestamp.toISOString(),
+          newPosition: result.newPosition,
+          rentEvent: result.rentEvent,
         },
       };
 

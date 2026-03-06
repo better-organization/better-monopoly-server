@@ -7,6 +7,7 @@ import { TurnManager } from '../services/TurnManager';
 import { RollDiceManager } from '../services/RollDiceManager';
 import { MovePlayerManager } from '../services/MovePlayerManager';
 import { TileManager } from '../services/TileManager';
+import { RentManager } from '../services/RentManager';
 import { Board } from './Board';
 import { GameStateManager } from '../services/GameStateManager';
 
@@ -104,12 +105,22 @@ export class Game {
     this.gameState = MovePlayerManager.movePlayer(this.gameState);
     this.gameState = TurnManager.nextPhase(this.gameState);
     this.gameState = TileManager.resolveTile(this.gameState, board);
+    let rentEvent: DiceRollResponse['rentEvent'];
+    if (
+      this.gameState.currentTile?.isOwned &&
+      !this.gameState.currentTile.isOwnerCurrentPlayer
+    ) {
+      const { state, event } = RentManager.chargeRent(this.gameState);
+      this.gameState = state;
+      rentEvent = event;
+    }
+
     this.gameState = TurnManager.nextPhase(this.gameState);
 
     const timestamp = timeServiceInstance.now();
     const newPosition = MovePlayerManager.currentPlayerPosition(this.gameState);
 
-    return { ...this.gameState.lastDice!, timestamp, newPosition };
+    return { ...this.gameState.lastDice!, timestamp, newPosition, rentEvent };
   }
 
   skipBuy(playerId: string): GameState {

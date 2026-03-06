@@ -53,6 +53,7 @@ export interface DiceRollResponse {
   timestamp: Date;
   newPosition: number;
   double: boolean;
+  rentEvent?: RentEvent | undefined;
 }
 
 export interface DiceRollData {
@@ -60,6 +61,7 @@ export interface DiceRollData {
   total: number;
   timestamp: string;
   newPosition: number;
+  rentEvent?: RentEvent | undefined;
 }
 
 export interface Turn {
@@ -74,7 +76,14 @@ export interface TileInfo {
   ownerId?: string;
   isOwnerCurrentPlayer?: boolean;
   price?: number;
-  rent?: number;
+  rentAmount?: number | undefined;
+}
+
+export interface RentEvent {
+  payerId: string;
+  ownerId: string;
+  amount: number;
+  tileName?: string;
 }
 
 // Game state response for polling
